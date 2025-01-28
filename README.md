@@ -51,18 +51,18 @@ Add Rfx to your project:
   (:require [io.factorhouse.rfx.core :as rf])) ;; <-- has the same API as re-frame.core
 
 ;; Example event registration
-(uf/reg-event-db
+(rfx/reg-event-db
  :initialize
  (fn [_ _]
    {:counter 0}))
 
-(uf/reg-event-db 
+(rfx/reg-event-db 
   :counter/increment
   (fn [db _]
     (update db :counter inc)))
 
 ;; Example subscription
-(uf/reg-sub
+(rfx/reg-sub
  :counter
  (fn [db _]
    (:counter db)))
@@ -116,7 +116,7 @@ rfx provides a `io.factorhouse.rfx.core/subscribe` function with the same API as
 
 ```clojure 
 (defn test-ui []
-  (let [counter (uf/subscribe [:counter])]
+  (let [counter (rfx/subscribe [:counter])]
     [:div @counter])) ;; supported, but we prefer use-sub 
 ```
 
