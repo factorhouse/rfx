@@ -2,7 +2,7 @@
 
 Rfx is a modern, API-compatible drop-in replacement for [re-frame](https://github.com/day8/re-frame), designed for use with React 18+ and a pluggable storage backend.
 
-It integrates seamlessly with vanilla React and popular libraries like [uix](https://github.com/pitch-io/uix) or even [Reagent](https://github.com/reagent-project/reagent), giving you the flexibility to adopt modern React standards while leveraging familiar patterns from re-frame.
+It integrates seamlessly with vanilla React, popular wrapper libraries like [uix](https://github.com/pitch-io/uix) or even [Reagent](https://github.com/reagent-project/reagent), giving you the flexibility to adopt modern React standards while leveraging familiar patterns from re-frame.
 
 ## Why choose Rfx?
 

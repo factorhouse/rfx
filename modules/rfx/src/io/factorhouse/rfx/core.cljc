@@ -301,22 +301,6 @@
   [sub]
   (subscribe* @registry sub (store/snapshot-state app-db)))
 
-#?(:cljs
-   (defn subscribe
-     "Deprecated: used to offer compatibility with io.factorhouse.rfx.core/subscribe.
-
-     Use io.factorhouse.rfx.core/use-sub instead"
-     [sub]
-     (let [s (store/use-store app-db (partial subscribe* @registry sub))]
-       (delay s))))
-
-#?(:clj
-   (defn subscribe
-     [sub]
-     (reify clojure.lang.IDeref
-       (deref [_]
-         (store/use-store app-db (partial subscribe* @registry sub))))))
-
 (reg-cofx :subscription
   (fn [coeffects [sub-id & _sub-args :as sub]]
     (assoc coeffects sub-id (subscribe-outside-of-react-context sub))))

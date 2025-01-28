@@ -22,6 +22,11 @@
 (def reg-cofx rf/reg-cofx)
 (def inject-cofx rf/inject-cofx)
 (def dispatch rf/dispatch)
-(def subscribe rf/subscribe)
+
+(defn subscribe
+  [sub]
+  (let [s (rf/use-sub sub)]
+    (delay s)))
+
 (def make-restore-fn rf/make-restore-fn)
 (def clear-subscription-cache! rf/clear-subscription-cache!)
