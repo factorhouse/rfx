@@ -8,6 +8,11 @@
                       (first args)
                       (str/join " " args)))))
 
+(defn error
+  [& args]
+  #?(:cljs (apply js/console.error args)
+     :clj  (apply log :error args)))
+
 (defn warn
   [& args]
   #?(:cljs (apply js/console.warn args)

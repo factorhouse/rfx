@@ -4,29 +4,40 @@
   Intended to assist with migrations of large codebases off of Reagent
 
   Shout outs to re-frame: https://github.com/day8/re-frame"
-  (:require [io.factorhouse.rfx.core :as rf]))
-
-(def app-db rf/app-db)
+  (:require [io.factorhouse.rfx.core :as rfx]
+            #?(:clj [io.factorhouse.rfx.stores.atom])
+            #?(:cljs [io.factorhouse.rfx.stores.zustand :as zustand])))
 
 (defn reg-sub
   ([sub-id]
-   (rf/reg-sub sub-id))
+   (rfx/reg-sub sub-id))
   ([sub-id & args]
    (let [signals (take-nth 2 (butlast (rest args)))
          sub-f   (last args)]
-     (rf/reg-sub sub-id signals sub-f))))
+     (rfx/reg-sub sub-id signals sub-f))))
 
-(def reg-event-db rf/reg-event-db)
-(def reg-event-fx rf/reg-event-fx)
-(def reg-fx rf/reg-fx)
-(def reg-cofx rf/reg-cofx)
-(def inject-cofx rf/inject-cofx)
-(def dispatch rf/dispatch)
+(def reg-event-db rfx/reg-event-db)
+(def reg-event-fx rfx/reg-event-fx)
+(def reg-fx rfx/reg-fx)
+(def reg-cofx rfx/reg-cofx)
+(def inject-cofx rfx/inject-cofx)
+(def dispatch rfx/dispatch)
 
-(defn subscribe
-  [sub]
-  (let [s (rf/use-sub sub)]
-    (delay s)))
+#?(:cljs (defn subscribe
+           [sub]
+           (let [s (rfx/use-sub sub)]
+             (delay s))))
 
-(def make-restore-fn rf/make-restore-fn)
-(def clear-subscription-cache! rf/clear-subscription-cache!)
+#?(:clj
+   (defn subscribe
+     [sub]
+     (reify clojure.lang.IDeref
+       (deref [_] (rfx/use-sub sub)))))
+
+(def make-restore-fn rfx/make-restore-fn)
+(def clear-subscription-cache! rfx/clear-subscription-cache!)
+
+(def app-db rfx/app-db)
+
+(rfx/init!
+  {:store #?(:cljs (zustand/store {}) :clj (atom {}))})

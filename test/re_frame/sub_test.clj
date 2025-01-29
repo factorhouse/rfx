@@ -28,7 +28,7 @@
       {:a a :b b}))
 
   (let [test-sub (rf/subscribe [:a-b-sub])]
-    (reset! rf/app-db {:a 1 :b 2})
+    (reset! (rf/app-db) {:a 1 :b 2})
     (is (= {:a 1 :b 2} @test-sub))
-    (reset! rf/app-db {:a 1 :b 3})
+    (reset! (rf/app-db) {:a 1 :b 3})
     (is (= {:a 1 :b 3} @test-sub))))

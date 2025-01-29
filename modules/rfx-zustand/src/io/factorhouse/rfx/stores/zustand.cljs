@@ -24,4 +24,8 @@
           (reset! newval)))
 
       (snapshot-state [_]
-        (obj/get (snapshot) "state")))))
+        (obj/get (snapshot) "state"))
+
+      cljs.core/IDeref
+      (-deref [this]
+        (store/snapshot-state this)))))

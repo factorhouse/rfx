@@ -1,0 +1,23 @@
+{
+  "name": "rfx",
+  "version": "1.0.0",
+  "description": "Rfx is a modern, API-compatible drop-in replacement for [re-frame](https://github.com/day8/re-frame), designed for use with React 18+ and a pluggable storage backend.",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "shadow-cljs": "^2.28.20"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "use-sync-external-store": "^1.4.0",
+    "zustand": "^5.0.3"
+  }
+}

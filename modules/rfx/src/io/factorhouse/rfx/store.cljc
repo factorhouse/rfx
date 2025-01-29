@@ -9,6 +9,6 @@
 
      The returned hook allows components to reactively subscribe to changes in the store.")
   (snapshot-reset! [_ newval]
-    "Resets the store to newval without regard for the current value. Must be called outside a React context.")
+    "Resets the store to newval without regard for the current value. Intended to be called outside a React context.")
   (snapshot-state [this]
-    "Returns the current internal state of the store for inspection or debugging purposes. Must be called outside a React context."))
+    "Returns the current internal state of the store for inspection or debugging purposes. Intended to be called outside a React context."))
