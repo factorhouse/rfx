@@ -28,7 +28,7 @@
     (->> db :todos vals (sort-by :ts))))
 
 (rfx/reg-sub
-  :todos/xxx
+  :todos/xyz
   (fn [db _]
     (->> db :todos vals (sort-by :ts))))
 
@@ -55,9 +55,10 @@
    [todos-list]])
 
 (defn init []
-  (.render root
-           (hsx/create-element
-             [:> rfx/RfxContextProvider #js {"value" todo-context}
-              [hello-world]])))
+  (.render
+    root
+    (hsx/create-element
+      [:> rfx/RfxContextProvider #js {"value" todo-context}
+       [hello-world]])))
 
 (init)

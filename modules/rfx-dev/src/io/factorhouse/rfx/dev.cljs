@@ -44,6 +44,7 @@
    :snapshots    []
    :repl-history []
    :sub-log      {}
+   :filters      {:sub {:show-inactive? true}}
    :epoch        0
    :open?        false
    :theme        (get-system-theme)})
@@ -77,6 +78,14 @@
     (fn []
       (f (deref rfx/global-registry)))))
 
+(defn use-sci []
+  (let [dispatch    (rfx/use-dispatch)
+        app-context (use-app-context)
+        opts        {:namespaces {'user {'dispatch  (:dispatch app-context)
+                                         'subscribe #(store/subscribe (:store app-context) %)}}}]
+    (fn [expr-str]
+      (sci/eval-string expr-str opts))))
+
 (defn watch-system-theme
   [callback]
   (let [media-query (js/window.matchMedia "(prefers-color-scheme: dark)")]
@@ -90,6 +99,22 @@
 (defn class-names
   [& xs]
   (str/join " " xs))
+
+(rfx/reg-sub
+  ::sub-filters
+  (fn [db _]
+    (-> db :filters :sub)))
+
+(rfx/reg-sub
+  ::sub-filter
+  [[::sub-filters]]
+  (fn [sub-filters [_ id]]
+    (get sub-filters id)))
+
+(rfx/reg-event-db
+  ::update-sub-filter
+  (fn [db [_ k v]]
+    (assoc-in db [:filters :sub k] v)))
 
 (rfx/reg-event-db
   ::repl-result
@@ -272,7 +297,7 @@
 
 (def rfx-slideout-class
   "fixed bottom-0 left-0 w-full max-h-[50vh] bg-white dark:bg-gray-900 dark:text-white
-   border-t border-gray-300 dark:border-gray-700 shadow-lg max-h-96 h-96")
+   border-t border-gray-300 dark:border-gray-700 shadow-lg h-[650px]")
 
 (def rfx-primary-tabs-container-class
   "p-2 bg-gray-100 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-t-md shadow flex w-full")
@@ -315,6 +340,26 @@
    shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
    placeholder-gray-400 dark:placeholder-gray-500")
 
+(def rfx-table-header-class
+  "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300
+   font-semibold uppercase tracking-wider text-left border-b border-gray-300 dark:border-gray-700")
+
+(def rfx-table-class
+  "w-full text-sm border border-gray-300 dark:border-gray-700
+   bg-white dark:bg-gray-900 text-gray-800 dark:text-white
+   rounded-md shadow-sm overflow-hidden")
+
+(def rfx-table-row-class
+  "border-b border-gray-200 dark:border-gray-700
+   hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200")
+
+(def rfx-checkbox-class
+  "w-4 h-4 rounded border border-gray-400 dark:border-gray-600
+   bg-white dark:bg-gray-900 text-blue-600 dark:text-blue-400
+   focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
+   transition-all duration-200 cursor-pointer
+   checked:bg-blue-600 dark:checked:bg-blue-500 checked:border-transparent")
+
 (defn is-sub-live
   [id]
   (let [active-watchers (rfx/use-sub [::sub-users id])
@@ -323,26 +368,63 @@
       [:div {:className "mt-4"}
        [:div {:className "flex items-center gap-2"}
         [:span {:className "dark:bg-green-600 bg-green-100 rounded-md rounded p-2"}
-         (count active-watchers) " subscriber"]
+         (count active-watchers) " subscribers"]
         [:span {:className "dark:bg-gray-600 bg-gray-100 rounded-md rounded p-2"}
          total-watchers " total re-renders"]]
-       [:ul {:className "mt-4"}
-        (for [watcher active-watchers]
-          ^{:key (str "watcher-" (:id watcher))}
-          [:li {:className "dark:bg-slate-600 p-2 rounded rounded-md border border-gray-300 dark:border-gray-700"}
-           [:pre
-            (:display-name watcher) " => (subscribe "
-            (pr-str (into [id] (:args watcher)))
-            ") ;; used " (ago (:last-observed watcher)) " / " (:render-count watcher) " re-renders"]])]]
+       [:table {:className (class-names "mt-4" rfx-table-class)}
+        [:caption {:className "sr-only"}
+         (str "A table describing the active subscribers to " (pr-str id) ".")]
+        [:thead {:className rfx-table-header-class}
+         [:th {:className "px-3 py-2"} "Component"]
+         [:th {:className "px-3 py-2"} "Subscription"]
+         [:th {:className "px-3 py-2"} "Last rendered"]
+         [:th {:className "px-3 py-2"} "Re-renders"]]
+        [:tbody
+         (for [watcher active-watchers]
+           ^{:key (str "watcher-" (:id watcher))}
+           [:tr {:className rfx-table-row-class}
+            [:td {:className "px-3 py-2 whitespace-nowrap"} (:display-name watcher)]
+            [:td {:className "px-3 py-2 whitespace-nowrap"}
+             [:pre "(subscribe "
+              (pr-str (into [id] (:args watcher)))
+              ")"]]
+            [:td {:className "px-3 py-2 whitespace-nowrap"} (ago (:last-observed watcher))]
+            [:td {:className "px-3 py-2 whitespace-nowrap"} (:render-count watcher)]])]]]
 
       [:div {:className "mt-4"}
        [:span {:className "dark:bg-yellow-600 bg-yellow-100 rounded-md rounded p-2"}
         "Inactive"]])))
 
+(defn send-to-repl-button
+  [sub-id]
+  (let [dispatch    (rfx/use-dispatch)
+        eval-string (use-sci)
+        expr-string (str "(subscribe " (pr-str [sub-id]) ")")]
+    [:div
+     [:button {:className rfx-secondary-button-class
+               :on-click  #(dispatch [::repl-result {:expr-str expr-string
+                                                     :result   (eval-string expr-string)
+                                                     :id       (str (gensym "repl"))}])}
+      "Send to REPL"]]))
+
+(defn registry-sub-form
+  []
+  (let [checked? (rfx/use-sub [::sub-filter :show-inactive?])
+        dispatch (rfx/use-dispatch)]
+    [:form {:className "flex items-center gap-4 w-full"}
+     [:label {:className "flex items-center space-x-2 cursor-pointer"}
+      [:input {:type      "checkbox"
+               :className rfx-checkbox-class
+               :checked   checked?
+               :on-change #(dispatch [::update-sub-filter :show-inactive? (not checked?)])}]
+      [:span {:className "text-sm text-gray-800 dark:text-gray-300"} "Show inactive?"]]]))
+
 (defn registry-list
   [reg-id]
   (let [registry (use-global-registry reg-id)]
     [:div {:className rfx-content-class}
+     (when (= :sub reg-id)
+       [registry-sub-form])
      [:div {:className "flex items-center gap-4 w-full"}
       (if (seq registry)
         [:ul {:className "w-full"}
@@ -360,9 +442,7 @@
               (when (= :sub reg-id)
                 [is-sub-live id])]
 
-             [:div
-              [:button {:className rfx-secondary-button-class}
-               "Send to REPL"]]]])]
+             [send-to-repl-button id]]])]
         [:div {:className "rounded rounded-md dark:bg-yellow-600 bg-yellow-100 p-4 mt-4 dark:border-gray-700 border-gray-300 border w-full"}
          "You have no " (pr-str reg-id) " in your Rfx registry."])]]))
 
@@ -380,13 +460,13 @@
       [:> Tab {:className rfx-secondary-tab-class}
        "Cofx"]]]
     [:> TabPanels {:className "w-full h-full"}
-     [:> TabPanel {:className "h-full overflow-scroll"}
+     [:> TabPanel {:className "h-full"}
       [registry-list :sub]]
-     [:> TabPanel {:className "h-full overflow-scroll"}
+     [:> TabPanel {:className "h-full"}
       [registry-list :event]]
-     [:> TabPanel {:className "h-full overflow-scroll"}
+     [:> TabPanel {:className "h-full"}
       [registry-list :fx]]
-     [:> TabPanel {:className "h-full overflow-scroll"}
+     [:> TabPanel {:className "h-full"}
       [registry-list :cofx]]]]])
 
 (defn build-node
@@ -407,7 +487,6 @@
              signals)))
 
 (defn create-graph []
-
   (let [Graph (obj/get Darge/graphlib "Graph")]
     (doto (new Graph)
       (.setDefaultEdgeLabel (fn [] #js {})))))
@@ -473,36 +552,46 @@
                     :nodeTypes #js {"db"  render-db-node
                                     "sub" render-sub-node}}]]))
 
+(def rfx-repl-input-class
+  "w-full px-3 py-2 text-sm border-t border-gray-300 dark:border-gray-700
+   bg-white dark:bg-gray-900 text-gray-800 dark:text-white
+   focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
+   outline-none")
+
 (defn repl-input []
   (let [[input-value set-input-value] (react/useState "")
-        dispatch    (rfx/use-dispatch)
-        app-context (use-app-context)]
+        eval-string (use-sci)
+        dispatch    (rfx/use-dispatch)]
     [:input {:className   rfx-input-class
              :value       input-value
              :on-change   #(set-input-value (-> % .-target .-value))
              :on-key-down (fn [e]
                             (when (= "Enter" (.-key e))
-                              (let [opts     {:namespaces {'user {'dispatch  (:dispatch app-context)
-                                                                  'subscribe #(store/subscribe (:store app-context) %)}}}
-                                    expr-str (-> e .-target .-value)
-                                    result   (sci/eval-string expr-str opts)]
+                              (let [expr-str (-> e .-target .-value)
+                                    result   (eval-string expr-str)]
                                 (dispatch [::repl-result {:expr-str expr-str
                                                           :result   result
                                                           :id       (str (gensym "repl"))}]))))}]))
+
+(def rfx-repl-container-class
+  "flex flex-col h-[450px] w-full bg-white dark:bg-gray-900 text-gray-800 dark:text-white")
+
+(def rfx-repl-history-class
+  "flex-1 overflow-y-auto p-4 space-y-2 border-t border-gray-300 dark:border-gray-700")
 
 (defn repl-view
   []
   (let [results (rfx/use-sub [::repl-history])]
     [:div {:className rfx-content-class}
-     [:div {:className "mt-4 flex flex-col"}
-      [:div {:className "grow"}
+     [:div {:className rfx-repl-container-class}
+      [:div {:className rfx-repl-history-class}
        [:ul
         (for [{:keys [expr-str id result]} results]
           ^{:key (str "repl-result-" id)}
-          [:li
+          [:li {:className "rounded rounded-md dark:bg-slate-500 p-4 mt-4 dark:border-gray-700 border-gray-300 border w-full"}
            [:div (str "user => " expr-str)]
            [:pre (pr-str result)]])]]
-      [:div
+      [:div {}
        [repl-input]]]]))
 
 (rfx/reg-event-db
@@ -569,16 +658,16 @@
                      :className (class-names "justify-self-end mr-4" rfx-primary-button-class)}
             [:span {:className "sr-only"} "Close"]
             "X"]]
-          [:> TabPanels {:className "h-full overflow-scroll"}
-           [:> TabPanel {:className "h-full overflow-scroll"}
+          [:> TabPanels {:className "h-full"}
+           [:> TabPanel {:className "h-full"}
             [live-view]]
            [:> TabPanel {:className "h-full"}
             [registry-view]]
-           [:> TabPanel {:className "h-full overflow-scroll"}
+           [:> TabPanel {:className "h-full"}
             [snapshots-view]]
-           [:> TabPanel {:className "h-full overflow-scroll"}
+           [:> TabPanel {:className "h-full"}
             "Log"]
-           [:> TabPanel {:className "h-full overflow-scroll"}
+           [:> TabPanel {:className "h-full"}
             [repl-view]]]]]]])))
 
 (defn init!
