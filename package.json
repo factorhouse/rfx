@@ -15,6 +15,9 @@
     "shadow-cljs": "^2.28.20"
   },
   "dependencies": {
+    "@dagrejs/dagre": "^1.1.4",
+    "@headlessui/react": "^2.2.0",
+    "@xyflow/react": "^12.4.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   }

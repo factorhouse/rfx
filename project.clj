@@ -13,5 +13,6 @@
                  "modules/rfx-demo/src"]
   :profiles {:dev {:dependencies [[thheller/shadow-cljs "2.28.20"]
                                   [com.stuartsierra/dependency "1.0.0"]
-                                  [io.factorhouse/hsx "1.0.11"]]}}
+                                  [io.factorhouse/hsx "1.0.11"]
+                                  [org.babashka/sci "0.9.44"]]}}
   :repl-options {:init-ns io.factorhouse.rfx.core})
