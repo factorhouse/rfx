@@ -1,50 +1,28 @@
 (ns io.factorhouse.rfx.core
   "An implementation of re-frame built for modern React"
-  (:refer-clojure :exclude [error-handler])
   (:require [io.factorhouse.rfx.loggers :as loggers]
             [io.factorhouse.rfx.queue :as queue]
-            [io.factorhouse.rfx.queues.stable :as queues.stable]
-            [io.factorhouse.rfx.store :as store]))
+            [io.factorhouse.rfx.stores.atom :as stores.atom]
+            [io.factorhouse.rfx.store :as store]
+            [io.factorhouse.rfx.queues.stable :as stable-queue]
+            #?(:cljs ["react" :as react])))
 
-(defonce ^:private world
-  (atom
-    {:store         nil
-     :queue         nil
-     :error-handler nil
-     :registry      {}}))
-
-(defn- app-db []
-  (if-let [store (:store @world)]
-    store
-    (throw (ex-info "Rfx has not been initialized." {}))))
-
-(defn- event-queue []
-  (if-let [queue (:queue @world)]
-    queue
-    (throw (ex-info "Rfx has not been initialized." {}))))
-
-(defn- error-handler
-  [errors]
-  (if-let [error-handler (:error-handler @world)]
-    (error-handler errors)
-    (throw (ex-info "Rfx has not been initialized." {}))))
+(defonce global-registry
+  (atom {}))
 
 (defn log-and-continue-error-handler
-  [{:keys [errors]}]
-  (doseq [[level message] errors]
-    #?(:clj (loggers/log level message)
-       :cljs (js/console.log "Hello => " (pr-str level) message))))
+  [errors]
+  (prn "Errors => " (pr-str errors)))
 
 (defn dispatch
-  [event]
+  [{:keys [queue]} event]
   (if (nil? event)
     (throw (ex-info "re-frame: you called \"dispatch\" without an event vector." {}))
-    (queue/push (event-queue) event))
-  nil)
+    (queue/push queue event)))
 
 (defn reg-cofx
   [cofx-id cofx-fn]
-  (swap! world assoc-in [:registry :cofx cofx-id] cofx-fn))
+  (swap! global-registry assoc-in [:cofx cofx-id] cofx-fn))
 
 (defn inject-cofx
   ([id]
@@ -52,138 +30,153 @@
   ([id value]
    {:id id :value value}))
 
-(defn handle
-  [[event-id & _args :as event]]
-  (let [curr-registry (:registry @world)
-        errors        (atom [])]
-    (if-let [{:keys [event-f coeffects]} (get-in curr-registry [:event event-id])]
-      (let [curr-state (store/snapshot-state (app-db))
-            ctx        (reduce
-                         (fn [ctx {:keys [id value]}]
-                           (if-let [cofx-fn (get-in curr-registry [:cofx id])]
-                             (cofx-fn ctx value)
-                             (do
-                               (swap! errors conj {:type    :missing-cofx
-                                                   :level   :warn
-                                                   :message (str "No such cofx named " (pr-str id) ". Returning previous context.")})
-                               ctx)))
-                         {:db curr-state}
-                         coeffects)
-            result     (event-f ctx event)]
+(defn handler
+  [registry store error-handler]
+  (fn [event-queue [event-id & _args :as event]]
+    (let [curr-registry @registry
+          errors        (atom [])]
+      (if-let [{:keys [event-f coeffects]} (get-in curr-registry [:event event-id])]
+        (let [curr-state (store/snapshot-state store)
+              ctx        (reduce
+                           (fn [ctx {:keys [id value]}]
+                             (if-let [cofx-fn (get-in curr-registry [:cofx id])]
+                               (cofx-fn ctx value)
+                               (do
+                                 (swap! errors conj {:type    :missing-cofx
+                                                     :level   :warn
+                                                     :message (str "No such cofx named " (pr-str id) ". Returning previous context.")})
+                                 ctx)))
+                           {:db     curr-state
+                            ::store store}
+                           coeffects)
+              result     (event-f ctx event)]
 
-        (when-let [next-db (:db result)]
-          (let [db-fn (get-in curr-registry [:fx :db])]
-            (db-fn next-db)))
+          (when-let [next-db (:db result)]
+            (store/snapshot-reset! store next-db))
 
-        (doseq [[fx-id fx-val] (dissoc result :db)]
-          (if-let [fx-fn (get-in curr-registry [:fx fx-id])]
-            (fx-fn fx-val)
-            (swap! errors conj {:type    :missing-fx
-                                :level   :warn
-                                :message (str "Cannot find fx named " (pr-str fx-id))}))))
+          (when-let [dispatch-event (:dispatch result)]
+            (queue/push event-queue dispatch-event))
 
-      (swap! errors conj {:type    :missing-event
-                          :level   :warn
-                          :message (str "Cannot find event named " (pr-str event-id) ".")}))
+          (doseq [dispatch-event (:dispatch-n result)]
+            (queue/push event-queue dispatch-event))
 
-    (when-let [errors (seq @errors)]
-      (error-handler {:errors errors}))))
+          (doseq [[fx-id fx-val] (dissoc result :db :dispatch :dispatch-n)]
+            (if-let [fx-fn (get-in curr-registry [:fx fx-id])]
+              (fx-fn fx-val)
+              (swap! errors conj {:type    :missing-fx
+                                  :level   :warn
+                                  :message (str "Cannot find fx named " (pr-str fx-id))}))))
+
+        (swap! errors conj {:type    :missing-event
+                            :level   :warn
+                            :message (str "Cannot find event named " (pr-str event-id) ".")}))
+
+      (when-let [errors (seq @errors)]
+        (error-handler {:errors errors
+                        :origin event})))))
+
+(defn dispatch-sync
+  [{:keys [store error-handler queue]} event]
+  (let [handler-f (handler global-registry store error-handler)]
+    (handler-f queue event)))
 
 (defn reg-sub
   ([sub-id]
    (let [sub {:sub-f (fn [db _] db) :signals []}]
-     (swap! world assoc-in [:registry :sub sub-id] sub)))
+     (swap! global-registry assoc-in [:sub sub-id] sub)))
   ([sub-id sub-f]
    (let [sub {:sub-f sub-f :signals []}]
-     (swap! world assoc-in [:registry :sub sub-id] sub)))
+     (swap! global-registry assoc-in [:sub sub-id] sub)))
   ([sub-id signals sub-f]
    (let [sub {:sub-f sub-f :signals signals}]
-     (swap! world assoc-in [:registry :sub sub-id] sub))))
+     (swap! global-registry assoc-in [:sub sub-id] sub))))
 
-(defn- subscribe*
-  [curr-registry [sub-id & _sub-args :as sub] db]
-  (if-let [{:keys [sub-f signals]} (get-in curr-registry [:sub sub-id])]
-    (let [db-input (if (seq signals)
-                     (if (= 1 (count signals))
-                       (subscribe* curr-registry (first signals) db)
-                       (into [] (map #(subscribe* curr-registry % db)) signals))
-                     db)]
-      (sub-f db-input sub))
-    (error-handler
-      {:errors
-       [{:type    :subscribe-error
-         :level   :warn
-         :message (str "Cannot find subscription named " (pr-str sub-id) ".")}]})))
-
-(defn snapshot-sub
-  [sub]
-  (subscribe* (:registry @world) sub (store/snapshot-state (app-db))))
-
-(reg-cofx ::subscribe
-          (fn [coeffects [sub-id & _sub-args :as sub]]
-            (assoc coeffects sub-id (snapshot-sub sub))))
-
-(defn use-sub
-  [sub]
-  (let [sub-f (partial subscribe* (:registry @world) sub)]
-    (store/use-store (app-db) (with-meta sub-f {:sub sub}))))
+(reg-cofx
+  ::subscribe
+  (fn [coeffects [sub-id & _sub-args :as sub]]
+    (assoc coeffects sub-id (store/subscribe (::store coeffects) sub))))
 
 (defn reg-fx
   [fx-id f]
-  (swap! world assoc-in [:registry :fx fx-id] f))
-
-(reg-fx :db
-        (fn db-fx [next-value]
-          (store/snapshot-reset! (app-db) next-value)))
-
-(reg-fx :dispatch-n
-        (fn dispatch-n-fx [dispatch-events]
-          (doseq [event dispatch-events]
-            (dispatch event))))
-
-(reg-fx :dispatch
-        (fn dispatch-fx [event]
-          (dispatch event)))
+  (swap! global-registry assoc-in [:fx fx-id] f))
 
 (defn reg-event-fx
   ([event-fx-id f]
    (let [fx {:event-f f}]
-     (swap! world assoc-in [:registry :event event-fx-id] fx)))
+     (swap! global-registry assoc-in [:event event-fx-id] fx)))
   ([event-fx-id coeffects f]
    (let [fx {:event-f f :coeffects coeffects}]
-     (swap! world assoc-in [:registry :event event-fx-id] fx))))
-
-(defn reg-error-fx
-  ([event-fx-id f]
-   (let [fx {:event-f f}]
-     (swap! world update :registry
-            (fn [curr-registry]
-              (-> curr-registry
-                  (assoc :error-event-id event-fx-id)
-                  (assoc-in [:event event-fx-id] fx))))))
-  ([event-fx-id coeffects f]
-   (let [fx {:event-f f :coeffects coeffects}]
-     (swap! world update :registry
-            (fn [curr-registry]
-              (-> curr-registry
-                  (assoc :error-event-id event-fx-id)
-                  (assoc-in [:event event-fx-id] fx)))))))
+     (swap! global-registry assoc-in [:event event-fx-id] fx))))
 
 (defn reg-event-db
   [event-id event-f]
   (let [event {:event-f (fn [{:keys [db]} event] {:db (event-f db event)})}]
-    (swap! world assoc-in [:registry :event event-id] event)))
-
-(defn make-restore-fn []
-  (let [prev-state (store/snapshot-state (app-db))]
-    (fn []
-      (store/snapshot-reset! (app-db) prev-state))))
+    (swap! global-registry assoc-in [:event event-id] event)))
 
 (defn clear-subscription-cache! []
-  (swap! world update :registry #(dissoc % :sub)))
+  (swap! global-registry dissoc :sub))
 
-(defn init!
-  [{:keys [queue store error-handler]
-    :or   {error-handler log-and-continue-error-handler
-           queue         queues.stable/event-queue}}]
-  (swap! world assoc :queue (queue handle error-handler) :store store :error-handler error-handler))
+(defn snapshot-sub
+  [{:keys [store]} sub]
+  (store/subscribe store sub))
+
+(defn snapshot-state
+  [{:keys [store]}]
+  (store/snapshot-state store))
+
+(defn init
+  [{:keys [initial-value queue error-handler store]
+    :or   {initial-value {}
+           error-handler log-and-continue-error-handler
+           queue         stable-queue/event-queue
+           store         stores.atom/store}}]
+  (let [store*         (store global-registry initial-value)
+        handler*       (handler global-registry store* error-handler)
+        queue*         (queue handler* error-handler)
+        use-sub*       (fn use-sub* [sub]
+                         (store/use-sub store* sub))
+        ctx            {:store         store*
+                        :error-handler error-handler
+                        :handler       handler*
+                        :queue         queue*
+                        :use-sub       use-sub*}
+        dispatch*      (fn dispatch* [event]
+                         (dispatch ctx event))
+        dispatch-sync* (fn dispatch-sync* [event]
+                         (handler* queue* event))]
+    (assoc ctx
+      :dispatch dispatch*
+      :use-sub use-sub*
+      :dispatch-sync dispatch-sync*)))
+
+(defonce global-context
+  (init {}))
+
+#?(:cljs
+   (defonce RfxContext
+     (react/createContext global-context)))
+
+#?(:cljs
+   (defonce RfxContextProvider
+     (.-Provider RfxContext)))
+
+#?(:cljs
+   (defn use-rfx-context []
+     (react/useContext RfxContext)))
+
+#?(:cljs
+   (defn use-sub
+     [sub]
+     (let [ctx       (use-rfx-context)
+           use-sub-f (:use-sub ctx)]
+       (use-sub-f sub))))
+
+#?(:cljs
+   (defn use-dispatch []
+     (let [ctx (use-rfx-context)]
+       (:dispatch ctx))))
+
+#?(:cljs
+   (defn use-dispatch-sync []
+     (let [ctx (use-rfx-context)]
+       (:dispatch-sync ctx))))

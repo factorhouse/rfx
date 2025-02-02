@@ -100,7 +100,7 @@
     [this]
     (let [event-v (peek queue)]
       (try
-        (handler event-v)
+        (handler this event-v)
         (set! queue (pop queue))
         (queue/-call-post-event-callbacks this event-v)
         (catch #?(:cljs :default :clj Exception) ex

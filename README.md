@@ -20,7 +20,6 @@ Rfx provides a clear path forward for codebases stuck on Reagent:
 
 * Retain the **re-frame API** and familiar event-driven architecture.
 * Adopt **modern React standards**, unlocking access to the full React ecosystem.
-* Support a **pluggable storage backend**, with zustand as the default option.
 
 This library is part of our ongoing efforts at Factor House to migrate large ClojureScript codebases to modern React without sacrificing the core principles and patterns that make re-frame powerful.
 
@@ -28,185 +27,211 @@ This library is part of our ongoing efforts at Factor House to migrate large Clo
 
 * **API Compatibility**: Drop-in replacement for re-frame—no need to rewrite your event handlers or subscriptions.
 * **Modern React Support**: Fully compatible with React 18+, including features like Concurrent Rendering.
-* **Performance**: rfx is written in <150 lines of Clojure, does not depend on RAtom abstractions.
-* **Flexible Storage**: Pluggable backend system for state management, with zustand as the default backend.
+* **Performance**: rfx takes full advantage of React's batched updates ... 
+* **Flexible Storage**: Pluggable backend system for state management, with a [ClojureScript atom](https://cljs.github.io/api/cljs.core/atom) as the default backend.
 * **Framework Agnostic**: Works with vanilla React, uix, and even Reagent (though migrating from Reagent is recommended).
 * **Future-Proof**: Stay aligned with React's ongoing development and ecosystem advancements.
 
 ## Getting started
 
-### Installation
-
-Add Rfx to your project:
-
-```clojure 
-;; deps.edn
-{:deps {io.factorhouse/rfx {:mvn/version "1.0.0"} ;; Core library
-        io.factorhouse/rfx-zustand {:mvn/version "1.0.0"} ;; Bring in the pluggable store
-        io.factorhouse/rfx-dev {:mvn/version "1.0.0"} ;; Useful DX tools
-        }}
-```
-
-Optional: if you want a drop in replacement for `re-frame.core` use:
+### Option 1: `re-frame.core` API
 
 ```clojure 
 ;; deps.edn
 {:deps {io.factorhouse/re-frame-bridge {:mvn/version "1.0.0"}}}
 ```
 
-### Basic usage
+The `io.factorhouse/re-frame-bridge` library is a drop-in replacement for [re-frame](https://github.com/day-8/re-frame) allowing you to interface with Rfx through a familiar `re-frame.core` namespace. 
+
+This library is primarily intended to be used by existing codebases who are seeing a more modern React alternative to Reagent/Re-frame.
+
+A compatability layer has been written for `re-frame.core` and all functions have been implemented. 
+
+As this is a compatability layer, advanced features of Rfx (such as React Contexts, hooks etc) cannot be used as easily from code using the bridging library.
+
+Check out the [re-frame-bridge-todo-mvc]() example for reference.
+
+### Option 2: `io.factorhouse.rfx.core` API
 
 ```clojure 
-(ns my-app.core
-  (:require [io.factorhouse.rfx.core :as rfx]
-            [io.factorhouse.rfx.stores.zustand :as zustand]))
-
-;; Declare our store
-(defonce app-db (zustand/store {:number 0}))
-
-;; Initialize Rfx
-(rfx/init! {:store app-db})
-
-;; Example event registration
-(rfx/reg-event-db
- :initialize
- (fn [_ _]
-   {:counter 0}))
-
-(rfx/reg-event-db 
-  :counter/increment
-  (fn [db _]
-    (update db :counter inc)))
-
-;; Example subscription
-(rfx/reg-sub
- :counter
- (fn [db _]
-   (:counter db)))
-
-;; Using subscriptions with your library of choice:
-
-;; 1) React (functional component)
-;; (:require ["react" :as react])
-(defn test-ui-react []
-  (let [counter (rfx/use-sub [:counter])]
-    (react/createElement
-      "div" #js {:onClick #(rfx/dispatch [:counter/increment])}
-      (str "The value of the counter is " counter))))
-
-;; 2) HSX
-;; (:require [io.factorhouse.hsx.core :as hsx])
-(defn test-ui-hsx []
-  (let [counter (rfx/use-sub [:counter])]
-    [:div {:on-click #(rfx/dispatch [:counter/increment])}
-     "The value of counter is " counter]))
-
-;; 3) Uix
-;; (:require [uix.core :refer [defui $]])
-(defui button [] 
-       (let [counter (rfx/use-sub [:counter])]
-         ($ :div {:on-click #(rf/dispatch [:counter/increment])}
-          "The value of counter is " counter)))
-
-;; 4) Reagent (not recommended, but it works)
-(defn test-ui-reagent* []
-  (let [counter (rfx/use-sub [:counter])]
-    [:div {:on-click #(rfx/dispatch [:counter/increment])}
-     "The value of counter is " counter]))
-
-(defn test-ui-reagent []
-  ;; Will need to use :f> functional components with Reagent
-  [:f> test-ui-reagent*])
+;; deps.edn
+{:deps {io.factorhouse/rfx {:mvn/version "1.0.0"} ;; Core library
+        io.factorhouse/rfx-dev {:mvn/version "1.0.0"} ;; Useful DX tools
+        }}
 ```
 
-### Re-frame bridge
+The `io.factorhouse/rfx` library presents a Re-frame like architecture built upon modern React foundations. 
 
-The `io.factorhouse/re-frame-bridge` dependency provides a shim `re-frame.core` namespace that taps into the rfx implementation. 
+While Re-frames event+subscription system has been retained (and will be forever backwards compatible with Rfx), we intend to push forward with our own ideas and abstractions. 
 
-You can use this bridging library to assist with migrating existing re-frame codebases to Rfx.
+Check out the [rfx-todo-mvc]() example for reference.
 
-See also:
-* [hsx](https://github.com/factorhouse/hsx) - Factor House's Hiccup templating library for React
-* [reagent-bridge](https://github.com/factorhouse/hsx) - similar to the Re-frame bridge: a shim `reagent.core` bridging library
+#### Rfx: Contexts
 
-### Rfx developer tools
+Rfx uses [React Context](https://react.dev/learn/passing-data-deeply-with-context) for child components wanting to access global application state.
 
-Rfx comes with rich developer tools via the `io.factorhouse/rfx-dev` dependency.
+By reading this section you will see how building on top of React contexts has several advantages to re-frame's singleton state approach.
 
-Simply initialize Rfx as follows:
+The `io.factorhouse.rfx.core/RfxContextProvider` component represents the entrypoint to Rfx.
 
-```clojure 
-(ns my-app.core
-  (:require [io.factorhouse.rfx.core :as rfx]
-            [io.factorhouse.rfx.dev :as rfx-dev]
-            [io.factorhouse.rfx.stores.zustand :as zustand]))
-
-;; Initialize Rfx
-(rfx/init!
-  (rfx-dev/opts {:store (zustand/store {})}))
-```
-
-### Stores
-
-Unique to Rfx is the ability to configure the storage backend. There are two storage backends: 
-
-* `io.factorhouse.rfx.stores.zustand` - the default storage backend 
-* `io.factorhouse.rfx.stores.atom` - wraps a Clojure atom, only intended for debugging/testing on the JVM
-
-### Error handlers
-
-Unique to Rfx is the ability to configure an error handler. An error handler collects all errors that have . The default 
-
-### Event queue
-
-Unique to Rfx is the ability to configure the event queue. Like re-frame, all events in Rfx are [queued and not actioned straight away](https://github.com/day8/re-frame/blob/master/docs/Solve-the-CPU-hog-problem.md).
-
-* `io.factorhouse.rfx.queues.stable` (default) - identical implementation (for now) to re-frame's. 
-* `io.factorhouse.rfx.queue.alpha` - subject to change, experimental queue exploring React 19's newer features.
-
-## Learning
-
-We suggest reading the [official re-frame docs](https://github.com/day8/re-frame/tree/master/docs).
-
-## Differences from re-frame
-
-### use-sub vs subscribe
-
-In rfx, there is no need to dereference a subscription inside your component as subscriptions use React hooks (as opposed to RAtoms with re-frame). 
-
-rfx provides a `re-frame.core/subscribe` function with the same API as part of the `io.factorhouse/re-frame-bridge` library. The subscribe function simply wraps the rfx `use-sub` hook in a [delay](https://clojuredocs.org/clojure.core/delay).
-
-```clojure 
-
-;; (require '[re-frame.core :as rf])
-
-(defn test-ui []
-  (let [counter (rfx/subscribe [:counter])]
-    [:div @counter])) ;; supported, but we prefer use-sub 
-```
-
-We suggest using `io.factorhouse.rfx.core/use-sub`.
-
-### Subscriptions can be accessed outside of React!
-
-Use the `io.factorhouse.rfx/snapshot-sub` function. 
-
-There is also a cofx named `:subscription` you can use to inject subscriptions into your Rfx events:
-
-```clojure
-(rfx/reg-event-fx :some-event 
-  [(rfx/inject-cofx :subscription [:some-sub-id])]
-  (fn [{:keys [some-sub-id]} _] 
-    ...)
-```
-
-If you need raw access to the entire `app-db` outside of React you can:
+Simply wrap your root component around a `RfxContextProvider` and you are ready to go:
 
 ```clojure 
 ;; (:require [io.factorhouse.rfx.core :as rfx])
 
-(prn @rfx/app-db)
+;; To use the default global state/options, pass in no opts to the context provider
+[:> rfx/RfxContextProvider #js {}
+  [my-root-component]]
+
+;; Create a custom context:
+(defonce custom-rfx-ctx (rfx/init {:initial-value {:foo :bar}}))
+
+[:> rfx/RfxContextProvider #js {"value" custom-rfx-context}
+ [my-root-component]]
 ```
+
+Rfx exposes two hooks to interface with global application state:
+
+* `io.factorhouse.rfx/use-sub` - a hook to subscribe to some data
+* `io.factorhouse.rfx/use-dispatch` - a hook to dispatch an event
+
+Both of these can be used within `my-root-component` like so:
+
+```clojure
+(rfx/reg-sub :counter (fn [db _] (:counter db)))
+
+(rfx/reg-event-db :counter/increment (fn [db _] (update db :counter inc)))
+
+(defn my-root-component
+  (let [dispatch (rfx/use-dispatch)
+        counter  (rfx/use-sub [:counter])]
+    [:div {:on-click #(dispatch [:counter/increment])} "The value of counter is " counter]))
+```
+
+Depending on the value of the `RfxContextProvider` from a parent component will dictate:
+
+a) Which store `use-sub` will subscribe to
+b) Which event queue `dispatch` will send events to
+
+This allows for your components to be isolated and thus allows for easier testing/integration with tools such as [StorybookJS](https://storybook.js.org/).
+
+#### Rfx: accessing context outside of React 
+
+So far you have only seen how we interface with Rfx from within React components (via Contexts and Hooks). 
+
+However, oftentimes you will have systems external to React that want to integrate with Rfx: 
+
+* Routers like [reitit](https://github.com/metosin/reitit) when a new page change event comes in
+* WebSocket connections or HTTP responses
+
+External systems will need to specify which Rfx instance they would like to communicate with via an extra argument:
+
+```clojure
+(defonce rfx-context (rfx/init {}))
+
+;; Some imaginary ws-instance 
+(.on ws-instance "message" #(rfx/dispatch rfx-context [:ws/message %]))
+```
+
+Generally this is no problem, as you would generally initialize all your services from inside an `init` function that has scope to your applications Rfx instance:
+
+```clojure
+(defn init []
+  (let [rfx (rfx/init {})]
+    (init-ws-conn! rfx)
+    (init-reitit-router! rfx)
+    (render-my-react rfx)))
+```
+
+You can get the current snapshot of a subscription outside of a React context by calling `io.factorhouse.rfx.core/snapshot-sub`:
+
+```clojure 
+(defn codemirror-autocomplete-suggestions 
+  [rfx]
+  (let [database-completions (rfx/snapshot-sub rfx [:ksql/database-completions])
+    ;; Logic to wire up codemirror6 completions based on re-frame data goes here
+    ))
+```
+
+If anything this might be Rfx's major selling point! Accessing subscriptions outside of React with re-frame was always cumbersome and somewhat hacky.
+
+#### Configuring the Rfx instance
+
+Calling `io.factorhouse.rfx.core/init` returns a new Rfx instance. So far we have only seen how we use this instance, but not how we configure it:
+
+`rfx/init` accepts the following keys: 
+
+* `:queue` - (optional) the event queue used to process messages. Default Queue is the same as re-frame's (uses goog.async.nextTick to handle events)
+* `:error-handler` - (optional) error handler (default ErrorHandler is the same as re-frame's - something that logs and continues)
+* `:store` - (optional) the store used to house your applications state. Default store is backed by a Clojure atom.
+* `:initial-value` - (optional) the initial value of the store. Default is `{}`.
+
+#### Custom error handlers
+
+Error handlers allow you to deal with errors 
+
+#### Custom stores and queues
+
+The default queue and store are sufficient for most use cases, however, it is possible to:
+
+* Write a custom store backend targeting popular JavaScript libraries like [zustand](https://github.com/pmndrs/zustand) or even [DataScript](https://github.com/tonsky/datascript). 
+* Write a queue based on [p-queue](https://github.com/sindresorhus/p-queue) so that you can compose Rfx events with React features like [useTransition](https://react.dev/reference/react/useTransition).
+
+While we have no guide on writing your custom store or queue (yet), please keep in mind that this extensibility is fundamental to Rfx.
+
+This is an area of active research here at Factor House as we explore the possibility of bringing more modern React capabilities into the ClojureScript React ecosystem.
+
+#### Developer tools
+
+Rfx comes with rich developer tools via the `io.factorhouse/rfx-dev` dependency.
+
+Simply wrap your Rfx instance at development time with the `io.factorhouse.rfx.dev/wrap-dev` function:
+
+```clojure 
+;; (:require [io.factorhouse.rfx.core :as rfx]
+;;           [io.factorhouse.rfx.dev :as rfx-dev])
+
+(defn dev-init! []
+  (let [rfx (-> {} rfx/init wrap-dev)]
+    (render-my-react rfx)))
+```
+
+`wrap-dev` adds all instrumentation, introspection and tracing utilities needed for developers when building Rfx applications.
+
+## Differences from re-frame
+
+### `^:flush-dom` annotations
+
+`^:flush-dom` metadata does not use `reagent...` but instead uses [requestAnimationFrame](https://developer.mozilla.org/en-US/docs/Web/API/Window/requestAnimationFrame). This feature is something we at Factor House have never used, so have not prioritised supporting it in any serious way with React 18. PRs welcome.
+
+### Rfx uses React 18+'s automatic batched updates + concurrent rendering out of the box
+
+The default Rfx store is implemented by the [useSyncExternalStore](https://react.dev/reference/react/useSyncExternalStore) hook. This allows Rfx to take advantage of [React's automatic batching](https://medium.com/@Brahmbhatnilay/understanding-automatic-batching-in-react-18-enhancing-performance-with-optimized-state-updates-9658d04e5785) found in React 18+. This is in contrast to Reagent's own batching logic for RAtoms that does not play well with modern React.
+
+**Note:** if your application depends on the specific timing of updates that is coupled to Reagent's implementation details then it's possible you might experience race conditions when migrating to Rfx.
+
+### All subscriptions are React hooks! 
+
+Even the compatible `re-frame.core/subscribe` function returns a subscription hook wrapped in a [Clojure delay](https://clojuredocs.org/clojure.core/delay).
+
+This means you will be able to use Rfx from any modern React wrapper (like HSX or Uix) or even vanilla JavaScript.
+
+**Note:** this means all the caveats of [React hooks](https://react.dev/reference/rules/rules-of-hooks) also apply to Rfx subscriptions! This also includes the re-frame-bridge compatibility layer.
+
+Reagent users will have to wrap components in the `:f>` shorthand to indicate you are inside a functional component:
+
+```clojure
+(defn rfx-interop []
+  (let [val @(rf/subscribe [:some-value])]
+    [:div "The result is " val]))
+
+(defn my-reagent-comp [] 
+  [:f> rfx-interop])
+```
+
+## Learning the re-frame architecture
+
+We highly suggest reading the most excellent [official re-frame docs](https://github.com/day8/re-frame/tree/master/docs).
 
 ## License
 

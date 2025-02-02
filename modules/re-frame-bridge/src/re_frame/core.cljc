@@ -4,9 +4,14 @@
   Intended to assist with migrations of large codebases off of Reagent
 
   Shout outs to re-frame: https://github.com/day8/re-frame"
+  (:refer-clojure :exclude [error-handler])
   (:require [io.factorhouse.rfx.core :as rfx]
-            #?(:clj [io.factorhouse.rfx.stores.atom])
-            #?(:cljs [io.factorhouse.rfx.stores.zustand :as zustand])))
+            [io.factorhouse.rfx.store :as store]))
+
+;; -- Re-frame API over Rfx
+
+(defonce app-db
+  (:store rfx/global-context))
 
 (defn reg-sub
   ([sub-id]
@@ -21,23 +26,26 @@
 (def reg-fx rfx/reg-fx)
 (def reg-cofx rfx/reg-cofx)
 (def inject-cofx rfx/inject-cofx)
-(def dispatch rfx/dispatch)
 
-#?(:cljs (defn subscribe
-           [sub]
-           (let [s (rfx/use-sub sub)]
-             (delay s))))
+(defn dispatch
+  [event]
+  (rfx/dispatch rfx/global-context event))
+
+#?(:cljs
+   (defn subscribe
+     [sub]
+     (let [s (store/use-sub app-db sub)]
+       (delay s))))
 
 #?(:clj
    (defn subscribe
      [sub]
      (reify clojure.lang.IDeref
-       (deref [_] (rfx/use-sub sub)))))
+       (deref [_] (store/subscribe app-db sub)))))
 
-(def make-restore-fn rfx/make-restore-fn)
+(defn make-restore-fn []
+  (let [prev-state @app-db]
+    (fn []
+      (store/snapshot-reset! app-db prev-state))))
+
 (def clear-subscription-cache! rfx/clear-subscription-cache!)
-
-(def app-db rfx/app-db)
-
-(rfx/init!
-  {:store #?(:cljs (zustand/store {}) :clj (atom {}))})
