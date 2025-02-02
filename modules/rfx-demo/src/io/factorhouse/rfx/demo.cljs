@@ -8,7 +8,7 @@
   (createRoot (.getElementById js/document "app")))
 
 (defonce todo-context
-  (rfx/init {:initial-value {:todos {}}}))
+  (wrap-dev (rfx/init {:initial-value {:todos {}}})))
 
 (rfx/reg-event-db
   :todos/add
@@ -24,6 +24,11 @@
 
 (rfx/reg-sub
   :todos/view
+  (fn [db _]
+    (->> db :todos vals (sort-by :ts))))
+
+(rfx/reg-sub
+  :todos/xxx
   (fn [db _]
     (->> db :todos vals (sort-by :ts))))
 
@@ -52,7 +57,7 @@
 (defn init []
   (.render root
            (hsx/create-element
-             [:> rfx/RfxContextProvider #js {"value" (wrap-dev todo-context)}
+             [:> rfx/RfxContextProvider #js {"value" todo-context}
               [hello-world]])))
 
 (init)

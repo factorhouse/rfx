@@ -11,7 +11,28 @@
             ["react-dom/client" :refer [createRoot]]
             ["@headlessui/react" :refer [Tab TabGroup TabList TabPanel TabPanels]]
             ["@xyflow/react" :refer [ReactFlow Handle Position]]
-            ["@dagrejs/dagre" :as Darge]))
+            ["@dagrejs/dagre" :as Darge]
+            ["dayjs" :as dayjs]
+            ["dayjs/plugin/relativeTime" :as relativeTime]))
+
+(.extend dayjs relativeTime)
+
+(defn ago
+  [ts]
+  (.from (dayjs ts) (dayjs)))
+
+(defn component-display-name []
+  (if-let [owner (some-> js/__REACT_DEVTOOLS_GLOBAL_HOOK__
+                         (obj/get "renderers")
+                         (seq)
+                         (first)
+                         (second)
+                         (.getCurrentFiber)
+                         (.-type))]
+    (or
+      (.-displayName owner)
+      (.-name owner))
+    "Unknown"))
 
 (defn get-system-theme []
   (let [media-query (js/window.matchMedia "(prefers-color-scheme: dark)")]
@@ -88,8 +109,8 @@
 
 (rfx/reg-event-db
   ::set-ui-theme
-  (fn [db _]
-    (:theme db)))
+  (fn [db [_ next-theme]]
+    (assoc db :theme next-theme)))
 
 (rfx/reg-sub
   ::open?
@@ -116,15 +137,29 @@
 
 (rfx/reg-event-db
   ::_mark-sub
-  (fn [db [_ id sub ts]]
-    (update-in db [:sub-log sub :watchers]
+  (fn [db [_ id sub ts display-name]]
+    (update-in db [:sub-log (first sub) :watchers]
                (fn [watchers]
-                 (assoc watchers id {:ts ts})))))
+                 (assoc watchers id {:last-observed  ts
+                                     :first-observed ts
+                                     :display-name   display-name
+                                     :render-count   0
+                                     :id             id
+                                     :args           (vec (rest sub))})))))
+
+(rfx/reg-event-db
+  ::_mark-sub-re-render
+  (fn [db [_ id sub ts]]
+    (update-in db [:sub-log (first sub) :watchers id]
+               (fn [watcher]
+                 (-> watcher
+                     (update :render-count #(inc (or % 0)))
+                     (assoc :last-observed ts))))))
 
 (rfx/reg-event-db
   ::_unmark-sub
   (fn [db [_ id sub]]
-    (update-in db [:sub-log sub :watchers]
+    (update-in db [:sub-log (first sub) :watchers]
                (fn [watchers]
                  (dissoc watchers id)))))
 
@@ -142,6 +177,11 @@
   ::_sub-log
   (fn [db _]
     (:sub-log db)))
+
+(rfx/reg-sub
+  ::sub-users
+  (fn [db [_ sub-id]]
+    (sort-by :last-observed > (vals (get-in db [:sub-log sub-id :watchers])))))
 
 (defn trace-queue
   [queue dev-dispatch]
@@ -181,16 +221,22 @@
 
 (defn trace-store
   [store dev-dispatch]
+  (prn "Race?")
   (reify store/IStore
     (use-sub [_ sub]
       (let [[id _] (react/useState (str (gensym "sub")))]
 
         (react/useEffect
           (fn []
-            (dev-dispatch [::_mark-sub id sub (now)])
+            (dev-dispatch [::_mark-sub id sub (now) (component-display-name)])
             (fn []
               (dev-dispatch [::_unmark-sub id sub])))
           #js [])
+
+        (react/useEffect
+          (fn []
+            (dev-dispatch [::_mark-sub-re-render id sub (now)])
+            (constantly nil)))
 
         (store/use-sub store sub)))
 
@@ -269,9 +315,33 @@
    shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
    placeholder-gray-400 dark:placeholder-gray-500")
 
-(defn registry-list
+(defn is-sub-live
   [id]
-  (let [registry (use-global-registry id)]
+  (let [active-watchers (rfx/use-sub [::sub-users id])
+        total-watchers  (reduce + 0 (keep :render-count active-watchers))]
+    (if (seq active-watchers)
+      [:div {:className "mt-4"}
+       [:div {:className "flex items-center gap-2"}
+        [:span {:className "dark:bg-green-600 bg-green-100 rounded-md rounded p-2"}
+         (count active-watchers) " subscriber"]
+        [:span {:className "dark:bg-gray-600 bg-gray-100 rounded-md rounded p-2"}
+         total-watchers " total re-renders"]]
+       [:ul {:className "mt-4"}
+        (for [watcher active-watchers]
+          ^{:key (str "watcher-" (:id watcher))}
+          [:li {:className "dark:bg-slate-600 p-2 rounded rounded-md border border-gray-300 dark:border-gray-700"}
+           [:pre
+            (:display-name watcher) " => (subscribe "
+            (pr-str (into [id] (:args watcher)))
+            ") ;; used " (ago (:last-observed watcher)) " / " (:render-count watcher) " re-renders"]])]]
+
+      [:div {:className "mt-4"}
+       [:span {:className "dark:bg-yellow-600 bg-yellow-100 rounded-md rounded p-2"}
+        "Inactive"]])))
+
+(defn registry-list
+  [reg-id]
+  (let [registry (use-global-registry reg-id)]
     [:div {:className rfx-content-class}
      [:div {:className "flex items-center gap-4 w-full"}
       (if (seq registry)
@@ -285,13 +355,16 @@
                (pr-str id)]
 
               [:pre {:className "mt-2"}
-               (pr-str val)]]
+               (pr-str val)]
+
+              (when (= :sub reg-id)
+                [is-sub-live id])]
 
              [:div
               [:button {:className rfx-secondary-button-class}
                "Send to REPL"]]]])]
         [:div {:className "rounded rounded-md dark:bg-yellow-600 bg-yellow-100 p-4 mt-4 dark:border-gray-700 border-gray-300 border w-full"}
-         "You have no " (pr-str id) " in your Rfx registry."])]]))
+         "You have no " (pr-str reg-id) " in your Rfx registry."])]]))
 
 (defn registry-view []
   [:div {:className "w-full h-full"}
@@ -486,6 +559,12 @@
              "Log"]
             [:> Tab {:className rfx-primary-tab-class}
              "REPL"]]
+           [:button {:on-click  #(dispatch [::set-ui-theme (if (= theme "dark")
+                                                             "light"
+                                                             "dark")])
+                     :className (class-names "justify-self-end mr-4" rfx-primary-button-class)}
+            [:span {:className "sr-only"} "Toggle theme"]
+            "T"]
            [:button {:on-click  #(dispatch [::open false])
                      :className (class-names "justify-self-end mr-4" rfx-primary-button-class)}
             [:span {:className "sr-only"} "Close"]
@@ -516,7 +595,10 @@
   [app-context]
   (let [dispatch (:dispatch dev-context)]
     (init! app-context)
-    (-> app-context
-        (update :store trace-store dispatch)
-        (update :queue trace-queue dispatch)
-        (update :error-handler trace-error-handler dispatch))))
+    (let [next-ctx (-> app-context
+                       (update :store trace-store dispatch)
+                       (update :queue trace-queue dispatch)
+                       (update :error-handler trace-error-handler dispatch))]
+      (assoc next-ctx :use-sub
+                      (fn trace-use-sub* [sub]
+                        (store/use-sub (:store next-ctx) sub))))))
