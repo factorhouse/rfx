@@ -50,9 +50,7 @@
 
 (defn remove-rfx-dev-ns
   [xs]
-  (into [] (remove (fn [[id _]]
-                     (= (namespace id) "io.factorhouse.rfx.dev")))
-        xs))
+  (into [] (remove (fn [[id _]] (= (namespace id) "io.factorhouse.rfx.dev"))) xs))
 
 (defonce dev-context
   (rfx/init {:initial-value initial-state}))
@@ -167,6 +165,7 @@
                                      :first-observed ts
                                      :display-name   display-name
                                      :render-count   0
+                                     :force-re-render 0
                                      :id             id
                                      :args           (vec (rest sub))})))))
 
@@ -200,6 +199,17 @@
   ::_sub-log
   (fn [db _]
     (:sub-log db)))
+
+(rfx/reg-sub
+  ::_sub-force-re-render
+  [[::_sub-log]]
+  (fn [sub-log [_ sub id]]
+    (get-in sub-log [(first sub) :watchers id :force-re-render])))
+
+(rfx/reg-event-db
+  ::_sub-force-re-render
+  (fn [db [_ sub id]]
+    (update-in db [(:sub-log first sub) :watchers id :force-re-render] inc)))
 
 (rfx/reg-sub
   ::sub-users
@@ -243,10 +253,11 @@
     (app-error-handler e)))
 
 (defn trace-store
-  [store dev-dispatch]
+  [store dev-dispatch use-dev-sub]
   (reify store/IStore
     (use-sub [_ sub]
-      (let [[id _] (react/useState (str (gensym "sub")))]
+      (let [[id _] (react/useState (str (gensym "sub")))
+            _ (use-dev-sub [::_sub-force-re-render sub id])]
 
         (react/useEffect
           (fn []
@@ -679,12 +690,13 @@
 
 (defn ^:export wrap-dev
   [app-context]
-  (let [dispatch (:dispatch dev-context)]
+  (let [dev-dispatch (:dispatch dev-context)
+        use-dev-sub  (:use-sub dev-context)]
     (init! app-context)
     (let [next-ctx (-> app-context
-                       (update :store trace-store dispatch)
-                       (update :queue trace-queue dispatch)
-                       (update :error-handler trace-error-handler dispatch))]
+                       (update :store trace-store dev-dispatch use-dev-sub)
+                       (update :queue trace-queue dev-dispatch)
+                       (update :error-handler trace-error-handler dev-dispatch))]
       (assoc next-ctx :use-sub
                       (fn trace-use-sub* [sub]
                         (store/use-sub (:store next-ctx) sub))))))

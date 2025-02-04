@@ -2,16 +2,16 @@
   (:require [io.factorhouse.rfx.store :as store]
             #?(:cljs ["react" :as react])))
 
-(defn reaction
+(defn- reaction
   [prev-cache next-db curr-registry cache store [sub-id & _sub-args :as sub]]
-  (let [{:keys [sub-f signals]} (get-in curr-registry [:sub sub-id])]
+  (if-let [{:keys [sub-f signals]} (get-in curr-registry [:sub sub-id])]
     (if (contains? prev-cache sub)
       (if (seq signals)
         (let [prev-val         (get prev-cache sub)
               realized-signals (map #(reaction prev-cache next-db curr-registry cache store %) signals)
               signals-updated? (some first realized-signals)]
           (if signals-updated?
-            (let [realized-signals (map second realized-signals)
+            (let [realized-signals (mapv second realized-signals)
                   realized-signals (if (= 1 (count realized-signals))
                                      (first realized-signals)
                                      realized-signals)
@@ -29,9 +29,10 @@
           [(not= result prev-val) result]))
 
       ;; Else never seen subscription, compute from ground-up.
-      [true (store/subscribe store sub)])))
+      [true (store/subscribe store sub)])
+    (throw (ex-info "Subscription does not exist in registry." {:sub sub}))))
 
-(defn subscribe*
+(defn- subscribe*
   [curr-cache curr-db curr-registry cache store [sub-id & _sub-args :as sub]]
   (if-let [{:keys [sub-f signals]} (get-in curr-registry [:sub sub-id])]
     (if-let [cache (get curr-cache sub)]
@@ -43,7 +44,8 @@
                                curr-db)
             result           (sub-f realized-signals sub)]
         (swap! cache assoc sub result)
-        result))))
+        result))
+    (throw (ex-info "Subscription does not exist in registry." {:sub sub}))))
 
 (deftype RfxAtom
   [app-db listeners subscription-cache notify registry]
@@ -59,8 +61,7 @@
        (react/useSyncExternalStore
          (fn subscribe-to-sub* [listener]
            (let [id (str (gensym "listener"))]
-             (swap! listeners assoc id {:listener listener
-                                        :sub      sub})
+             (swap! listeners assoc id {:listener listener :sub sub})
              (fn []
                (swap! listeners dissoc id))))
          (fn get-sub-snapshot* []
