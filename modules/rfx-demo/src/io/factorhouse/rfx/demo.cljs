@@ -28,6 +28,18 @@
     (->> db :todos vals (sort-by :ts))))
 
 (rfx/reg-sub
+  :todos/view1
+  [[:todos/view]]
+  (fn [view _]
+    (first view)))
+
+(rfx/reg-sub
+  :todos/view2
+  [[:todos/view1]]
+  (fn [_ _]
+    :foo))
+
+(rfx/reg-sub
   :todos/xyz
   (fn [db _]
     (->> db :todos vals (sort-by :ts))))
@@ -40,12 +52,23 @@
                             (when (= "Enter" (.-key e))
                               (dispatch [:todos/add (-> e .-target .-value)])))}]))
 
+(defn view-1 []
+  (let [todos (rfx/use-sub [:todos/view1])]
+    [:pre (pr-str todos)]))
+
+(defn view-2 []
+  (let [todos (rfx/use-sub [:todos/view2])]
+    [:pre (pr-str todos)]))
+
 (defn todos-list []
   (let [todos (rfx/use-sub [:todos/view])]
-    [:ul
-     (for [item todos]
-       ^{:key (str "todo-" (:id item))}
-       [:div (:value item)])]))
+    [:div
+     [view-1]
+     [view-2]
+     [:ul
+      (for [item todos]
+        ^{:key (str "todo-" (:id item))}
+        [:div (:value item)])]]))
 
 (defn hello-world []
   [:div {:className "p-4"}

@@ -2,57 +2,57 @@
   (:require [io.factorhouse.rfx.store :as store]
             #?(:cljs ["react" :as react])))
 
-(defn subscribe-rehydrate
-  [prev-cache registry cache store [sub-id & _sub-args :as sub]]
-  (when-let [{:keys [sub-f signals]} (get-in @registry [:sub sub-id])]
-    (let [cached-val (get prev-cache sub)]
+(defn reaction
+  [prev-cache next-db curr-registry cache store [sub-id & _sub-args :as sub]]
+  (let [{:keys [sub-f signals]} (get-in curr-registry [:sub sub-id])]
+    (if (contains? prev-cache sub)
       (if (seq signals)
-        (let [db-input          (into [] (map (fn [signal]
-                                                (let [[_ next-val] (subscribe-rehydrate prev-cache registry cache store signal)]
-                                                  [signal next-val])))
-                                      signals)
-              no-signal-change? (every? (fn [[signal next-val]]
-                                          (= next-val (get prev-cache signal)))
-                                        db-input)
-              recompute-value (fn []
-                                (let [db-input (map second db-input)
-                                      db-input (if (= 1 (count db-input))
-                                                 (first db-input)
-                                                 db-input)
-                                      result   (sub-f db-input sub)]
-                                  (swap! cache assoc sub result)
-                                  [(= result cached-val)
-                                   result]))]
-          ;; No signal change, get the previous value of sub (if present), otherwise recompute
-          (if no-signal-change?
-            (if cached-val
-              (do (swap! cache assoc sub cached-val)
-                  [false cached-val])
-              ;; If we have no recorded cached-val, we need to recompute
-              (recompute-value))
-            ;; Signals have changed, recompute value
-            (recompute-value)))
-        ;; Else, sub depends directly on app-db, re-compute val
-        (let [result (sub-f @store sub)]
+        (let [prev-val         (get prev-cache sub)
+              realized-signals (map #(reaction prev-cache next-db curr-registry cache store %) signals)
+              signals-updated? (some first realized-signals)]
+          (if signals-updated?
+            (let [realized-signals (map second realized-signals)
+                  realized-signals (if (= 1 (count realized-signals))
+                                     (first realized-signals)
+                                     realized-signals)
+                  result           (sub-f realized-signals sub)]
+              (swap! cache assoc sub result)
+              [(not= result prev-val) result])
+            (do
+              (swap! cache assoc sub prev-val)
+              [false prev-val])))
+
+        ;; Else depends on app db, recompute result
+        (let [result   (sub-f next-db sub)
+              prev-val (get prev-cache sub)]
           (swap! cache assoc sub result)
-          [(= result cached-val)
-           result])))))
+          [(not= result prev-val) result]))
+
+      ;; Else never seen subscription, compute from ground-up.
+      [true (store/subscribe store sub)])))
+
+(defn subscribe*
+  [curr-cache curr-db curr-registry cache store [sub-id & _sub-args :as sub]]
+  (if-let [{:keys [sub-f signals]} (get-in curr-registry [:sub sub-id])]
+    (if-let [cache (get curr-cache sub)]
+      cache
+      (let [realized-signals (if (seq signals)
+                               (if (= 1 (count signals))
+                                 (subscribe* curr-cache curr-db curr-registry cache store (first signals))
+                                 (into [] (map #(subscribe* curr-cache curr-db curr-registry cache store %)) signals))
+                               curr-db)
+            result           (sub-f realized-signals sub)]
+        (swap! cache assoc sub result)
+        result))))
 
 (deftype RfxAtom
   [app-db listeners subscription-cache notify registry]
   store/IStore
-  (subscribe [this [sub-id & _sub-args :as sub]]
-    (if-let [{:keys [sub-f signals]} (get-in @registry [:sub sub-id])]
-      (if-let [cache (get @subscription-cache sub)]
-        cache
-        (let [db-input (if (seq signals)
-                         (if (= 1 (count signals))
-                           (store/subscribe this (first signals))
-                           (into [] (map #(store/subscribe this %)) signals))
-                         @app-db)
-              result   (sub-f db-input sub)]
-          (swap! subscription-cache assoc sub result)
-          result))))
+  (subscribe [this sub]
+    (let [curr-cache    @subscription-cache
+          curr-db       @app-db
+          curr-registry @registry]
+      (subscribe* curr-cache curr-db curr-registry subscription-cache this sub)))
 
   (use-sub [this sub]
     #?(:cljs
@@ -63,7 +63,7 @@
                                         :sub      sub})
              (fn []
                (swap! listeners dissoc id))))
-         (fn get-store-snapshot* []
+         (fn get-sub-snapshot* []
            (store/subscribe this sub)))
 
        :clj (throw (ex-info "use-sub cannot be used from within the JVM." {:sub sub}))))
@@ -84,11 +84,15 @@
                          (fn []
                            (reset! notify nil)
                            (reset! subscription-cache {})
-                           ;; - When an external store emits a change, the hook triggers a re-render.
-                           ;; - React batches these updates, processing them together in a single render cycle if multiple changes occur rapidly.
-                           (doseq [[_ {:keys [listener sub]}] @listeners]
-                             (let [[notify? _] (prev-cache registry subscription-cache this sub)]
-                               (when notify?
+                           (let [curr-listeners (vals @listeners)
+                                 curr-subs      (into #{} (map :sub) curr-listeners)
+                                 curr-registry  @registry
+                                 sub-notify?    (into {} (map (fn [sub]
+                                                                (let [[notify? _] (reaction prev-cache newval curr-registry subscription-cache this sub)]
+                                                                  [sub notify?])))
+                                                      curr-subs)]
+                             (doseq [{:keys [listener sub]} curr-listeners]
+                               (when (sub-notify? sub)
                                  (listener))))))]
            (reset! notify notify*))))
 

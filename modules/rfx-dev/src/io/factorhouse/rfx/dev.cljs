@@ -128,7 +128,6 @@
 (rfx/reg-sub
   ::ui-theme
   (fn [db _]
-    (prn "Db => " db)
     (:theme db)))
 
 (rfx/reg-event-db
