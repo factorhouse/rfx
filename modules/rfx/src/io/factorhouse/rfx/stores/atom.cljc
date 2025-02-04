@@ -2,6 +2,42 @@
   (:require [io.factorhouse.rfx.store :as store]
             #?(:cljs ["react" :as react])))
 
+(defn subscribe-rehydrate
+  [prev-cache registry cache store [sub-id & _sub-args :as sub]]
+  (when-let [{:keys [sub-f signals]} (get-in @registry [:sub sub-id])]
+    (let [cached-val (get prev-cache sub)]
+      (if (seq signals)
+        (let [db-input          (into [] (map (fn [signal]
+                                                (let [[_ next-val] (subscribe-rehydrate prev-cache registry cache store signal)]
+                                                  [signal next-val])))
+                                      signals)
+              no-signal-change? (every? (fn [[signal next-val]]
+                                          (= next-val (get prev-cache signal)))
+                                        db-input)
+              recompute-value (fn []
+                                (let [db-input (map second db-input)
+                                      db-input (if (= 1 (count db-input))
+                                                 (first db-input)
+                                                 db-input)
+                                      result   (sub-f db-input sub)]
+                                  (swap! cache assoc sub result)
+                                  [(= result cached-val)
+                                   result]))]
+          ;; No signal change, get the previous value of sub (if present), otherwise recompute
+          (if no-signal-change?
+            (if cached-val
+              (do (swap! cache assoc sub cached-val)
+                  [false cached-val])
+              ;; If we have no recorded cached-val, we need to recompute
+              (recompute-value))
+            ;; Signals have changed, recompute value
+            (recompute-value)))
+        ;; Else, sub depends directly on app-db, re-compute val
+        (let [result (sub-f @store sub)]
+          (swap! cache assoc sub result)
+          [(= result cached-val)
+           result])))))
+
 (deftype RfxAtom
   [app-db listeners subscription-cache notify registry]
   store/IStore
@@ -21,13 +57,13 @@
   (use-sub [this sub]
     #?(:cljs
        (react/useSyncExternalStore
-         (fn [listener]
+         (fn subscribe-to-sub* [listener]
            (let [id (str (gensym "listener"))]
              (swap! listeners assoc id {:listener listener
                                         :sub      sub})
              (fn []
                (swap! listeners dissoc id))))
-         (fn []
+         (fn get-store-snapshot* []
            (store/subscribe this sub)))
 
        :clj (throw (ex-info "use-sub cannot be used from within the JVM." {:sub sub}))))
@@ -44,23 +80,23 @@
       ;; - Wrapping `notify` in a setTimeout effectively allows us to 'debounce' multiple successive/rapid mutations
       ;; - This optimisation stops the `store/subscribe` and equality check from being called multiple times
       #?(:cljs
-         (let [notify*   (js/setTimeout
-                           (fn []
-                             (reset! notify nil)
-                             (reset! subscription-cache {})
-                             ;; - When an external store emits a change, the hook triggers a re-render.
-                             ;; - React batches these updates, processing them together in a single render cycle if multiple changes occur rapidly.
-                             (doseq [[_ {:keys [listener sub]}] @listeners]
-                               (when-not (= (store/subscribe this sub)
-                                            (get prev-cache sub))
-                                 (listener)))))]
+         (let [notify* (js/setTimeout
+                         (fn []
+                           (reset! notify nil)
+                           (reset! subscription-cache {})
+                           ;; - When an external store emits a change, the hook triggers a re-render.
+                           ;; - React batches these updates, processing them together in a single render cycle if multiple changes occur rapidly.
+                           (doseq [[_ {:keys [listener sub]}] @listeners]
+                             (let [[notify? _] (prev-cache registry subscription-cache this sub)]
+                               (when notify?
+                                 (listener))))))]
            (reset! notify notify*))))
 
     newval)
 
   #?@(:cljs
-     (cljs.core/IDeref
-       (-deref [this] (store/snapshot-state this)))
+      (cljs.core/IDeref
+        (-deref [this] (store/snapshot-state this)))
 
       :clj
       (clojure.lang.IDeref

@@ -22,17 +22,16 @@
   (.from (dayjs ts) (dayjs)))
 
 (defn component-display-name []
-  (if-let [owner (some-> js/__REACT_DEVTOOLS_GLOBAL_HOOK__
-                         (obj/get "renderers")
-                         (seq)
-                         (first)
-                         (second)
-                         (.getCurrentFiber)
-                         (.-type))]
-    (or
-      (.-displayName owner)
-      (.-name owner))
-    "Unknown"))
+  (try
+    (when-let [owner (some-> js/__REACT_DEVTOOLS_GLOBAL_HOOK__
+                             (obj/get "renderers")
+                             (seq)
+                             (first)
+                             (second)
+                             (obj/get "getCurrentFiber"))]
+      (let [owner (some-> (owner) .-type)]
+        (or (.-displayName owner) (.-name owner))))
+    (catch :default _)))
 
 (defn get-system-theme []
   (let [media-query (js/window.matchMedia "(prefers-color-scheme: dark)")]
@@ -246,7 +245,6 @@
 
 (defn trace-store
   [store dev-dispatch]
-  (prn "Race?")
   (reify store/IStore
     (use-sub [_ sub]
       (let [[id _] (react/useState (str (gensym "sub")))]
@@ -383,11 +381,11 @@
          (for [watcher active-watchers]
            ^{:key (str "watcher-" (:id watcher))}
            [:tr {:className rfx-table-row-class}
-            [:td {:className "px-3 py-2 whitespace-nowrap"} (:display-name watcher)]
             [:td {:className "px-3 py-2 whitespace-nowrap"}
-             [:pre "(subscribe "
-              (pr-str (into [id] (:args watcher)))
-              ")"]]
+             (or (:display-name watcher)
+                 "Unknown")]
+            [:td {:className "px-3 py-2 whitespace-nowrap"}
+             [:pre "(subscribe " (pr-str (into [id] (:args watcher))) ")"]]
             [:td {:className "px-3 py-2 whitespace-nowrap"} (ago (:last-observed watcher))]
             [:td {:className "px-3 py-2 whitespace-nowrap"} (:render-count watcher)]])]]]
 
@@ -680,7 +678,7 @@
                 [rfx-icon]
                 [rfx-slide]]]])))
 
-(defn wrap-dev
+(defn ^:export wrap-dev
   [app-context]
   (let [dispatch (:dispatch dev-context)]
     (init! app-context)
