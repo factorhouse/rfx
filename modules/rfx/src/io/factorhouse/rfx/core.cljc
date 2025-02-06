@@ -91,10 +91,12 @@
    (let [sub {:sub-f sub-f :signals signals}]
      (swap! global-registry assoc-in [:sub sub-id] sub))))
 
-(reg-cofx
-  ::subscribe
-  (fn [coeffects [sub-id & _sub-args :as sub]]
-    (assoc coeffects sub-id (store/subscribe (::store coeffects) sub))))
+
+(defn cofx-subscribe
+  [coeffects [sub-id & _sub-args :as sub]]
+  (assoc coeffects sub-id (store/subscribe (::store coeffects) sub)))
+
+(reg-cofx ::subscribe cofx-subscribe)
 
 (defn reg-fx
   [fx-id f]
