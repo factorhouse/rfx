@@ -1,4 +1,7 @@
 (ns io.factorhouse.rfx.queues.stable
+  "This is the 'stable' implementation of an EventQueue.
+
+  Original implementation comes from re-frame:"
   (:require [io.factorhouse.rfx.queue :as queue]
             #?(:cljs [goog.async.nextTick])))
 
@@ -13,7 +16,6 @@
 (def later-fns
   {:flush-dom next-tick                                     ;; one tick after the end of the next animation frame
    :yield     next-tick})                                   ;; almost immediately
-
 
 ;; Concrete implementation of IEventQueue
 (deftype EventQueue [#?(:cljs ^:mutable fsm-state :clj ^:volatile-mutable fsm-state)
@@ -32,7 +34,7 @@
   (add-post-event-callback [_ id callback-fn]
     (if (contains? post-event-callback-fns id)
       (error-handler [{:level   :info
-                         :message (str "rfx: overwriting existing post event call back with id:" id)}]))
+                       :message (str "rfx: overwriting existing post event call back with id:" id)}]))
     (->> (assoc post-event-callback-fns id callback-fn)
          (set! post-event-callback-fns)))
 
@@ -47,7 +49,7 @@
     (set! queue empty-queue))
 
   ;; -- FSM Implementation ---------------------------------------------------
-
+  queue/IFiniteStateMachine
   (-fsm-trigger
     [this trigger arg]
 
@@ -56,41 +58,41 @@
     ;; new FSM state and the transition action (function).
 
     (locking this
-             (let [[new-fsm-state action-fn]
-                   (case [fsm-state trigger]
+      (let [[new-fsm-state action-fn]
+            (case [fsm-state trigger]
 
-                     ;; You should read the following "case" as:
-                     ;; [current-FSM-state trigger] -> [new-FSM-state action-fn]
-                     ;;
-                     ;; So, for example, the next line should be interpreted as:
-                     ;; if you are in state ":idle" and a trigger ":add-event"
-                     ;; happens, then move the FSM to state ":scheduled" and execute
-                     ;; that two-part "do" function.
-                     [:idle :add-event] [:scheduled #(do (queue/-add-event this arg)
-                                                         (queue/-run-next-tick this))]
+              ;; You should read the following "case" as:
+              ;; [current-FSM-state trigger] -> [new-FSM-state action-fn]
+              ;;
+              ;; So, for example, the next line should be interpreted as:
+              ;; if you are in state ":idle" and a trigger ":add-event"
+              ;; happens, then move the FSM to state ":scheduled" and execute
+              ;; that two-part "do" function.
+              [:idle :add-event] [:scheduled #(do (queue/-add-event this arg)
+                                                  (queue/-run-next-tick this))]
 
-                     ;; State: :scheduled  (the queue is scheduled to run, soon)
-                     [:scheduled :add-event] [:scheduled #(queue/-add-event this arg)]
-                     [:scheduled :run-queue] [:running #(queue/-run-queue this)]
+              ;; State: :scheduled  (the queue is scheduled to run, soon)
+              [:scheduled :add-event] [:scheduled #(queue/-add-event this arg)]
+              [:scheduled :run-queue] [:running #(queue/-run-queue this)]
 
-                     ;; State: :running (the queue is being processed one event after another)
-                     [:running :add-event] [:running #(queue/-add-event this arg)]
-                     [:running :pause] [:paused #(queue/-pause this arg)]
-                     [:running :exception] [:idle #(queue/-exception this arg)]
-                     [:running :finish-run] (if (empty? queue)     ;; FSM guard
-                                              [:idle]
-                                              [:scheduled #(queue/-run-next-tick this)])
+              ;; State: :running (the queue is being processed one event after another)
+              [:running :add-event] [:running #(queue/-add-event this arg)]
+              [:running :pause] [:paused #(queue/-pause this arg)]
+              [:running :exception] [:idle #(queue/-exception this arg)]
+              [:running :finish-run] (if (empty? queue)     ;; FSM guard
+                                       [:idle]
+                                       [:scheduled #(queue/-run-next-tick this)])
 
-                     ;; State: :paused (:flush-dom metadata on an event has caused a temporary pause in processing)
-                     [:paused :add-event] [:paused #(queue/-add-event this arg)]
-                     [:paused :resume] [:running #(queue/-resume this)]
+              ;; State: :paused (:flush-dom metadata on an event has caused a temporary pause in processing)
+              [:paused :add-event] [:paused #(queue/-add-event this arg)]
+              [:paused :resume] [:running #(queue/-resume this)]
 
-                     (throw (ex-info (str "re-frame: router state transition not found. " fsm-state " " trigger)
-                                     {:fsm-state fsm-state, :trigger trigger})))]
+              (throw (ex-info (str "re-frame: router state transition not found. " fsm-state " " trigger)
+                              {:fsm-state fsm-state, :trigger trigger})))]
 
-               ;; The "case" above computed both the new FSM state, and the action. Now, make it happen.
-               (set! fsm-state new-fsm-state)
-               (when action-fn (action-fn)))))
+        ;; The "case" above computed both the new FSM state, and the action. Now, make it happen.
+        (set! fsm-state new-fsm-state)
+        (when action-fn (action-fn)))))
 
   (-add-event
     [_ event]
@@ -124,7 +126,7 @@
 
   (-exception
     [this ex]
-    (queue/purge this)                                            ;; purge the queue
+    (queue/purge this)                                      ;; purge the queue
     (throw ex))
 
   (-pause
@@ -138,8 +140,8 @@
 
   (-resume
     [this]
-    (queue/-process-1st-event-in-queue this)                      ;; do the event which paused processing
-    (queue/-run-queue this)))                                     ;; do the rest of the queued events
+    (queue/-process-1st-event-in-queue this)                ;; do the event which paused processing
+    (queue/-run-queue this)))                               ;; do the rest of the queued events
 
 (defn event-queue
   [handler error-handler]

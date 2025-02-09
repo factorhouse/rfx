@@ -2,7 +2,7 @@
   (:require [io.factorhouse.rfx.store :as store]
             #?(:cljs ["react" :as react])))
 
-;; Runs the reaction logic: checks whether a subscription value has changed between state changes.
+;; Runs the reaction logic: checks whether a subscription value has changed between db updates.
 ;; Returns a tuple of [state-updated? next-val]
 (defn- reaction
   [prev-cache next-db curr-registry cache cache-diff store sub]
@@ -95,17 +95,15 @@
   (snapshot-reset! [this newval]
     (locking this
       (let [prev-cache @subscription-cache]
-        (vreset! app-db newval)
+        (reset! app-db newval)
         (vreset! subscription-cache {})
         (let [curr-listeners (vals @listeners)
               curr-subs      (into #{} (map :sub) curr-listeners)
               curr-registry  @registry
               cache-diff     (volatile! {})
-              make-reaction  (fn [sub]
-                               (reaction prev-cache newval curr-registry subscription-cache cache-diff this sub))
+              make-reaction  #(reaction prev-cache newval curr-registry subscription-cache cache-diff this %)
               sub-notify?    (into {} (map (fn [sub]
-                                             (let [[notify? _] (make-reaction sub)]
-                                               [sub notify?])))
+                                             [sub (first (make-reaction sub))]))
                                    curr-subs)]
           (doseq [{:keys [listener sub]} curr-listeners]
             (when (sub-notify? sub)
@@ -115,15 +113,15 @@
 
   #?@(:cljs
       (cljs.core/IDeref
-        (-deref [this] (store/snapshot-state this)))
+        (-deref [_] @app-db))
 
       :clj
       (clojure.lang.IDeref
-        (deref [this] (store/snapshot-state this)))))
+        (deref [_] @app-db))))
 
 (defn store
   [registry initial-value]
-  (let [app-db             (volatile! initial-value)
+  (let [app-db             (atom initial-value)
         listeners          (volatile! {})
         subscription-cache (volatile! {})]
     (->RfxAtom app-db listeners subscription-cache registry)))

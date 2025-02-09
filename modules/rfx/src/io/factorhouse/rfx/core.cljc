@@ -5,6 +5,7 @@
             [io.factorhouse.rfx.stores.atom :as stores.atom]
             [io.factorhouse.rfx.store :as store]
             [io.factorhouse.rfx.queues.stable :as stable-queue]
+            [io.factorhouse.rfx.registry :as registry]
             #?(:cljs ["react" :as react])))
 
 (defonce global-registry
@@ -22,7 +23,7 @@
 
 (defn reg-cofx
   [cofx-id cofx-fn]
-  (swap! global-registry assoc-in [:cofx cofx-id] cofx-fn))
+  (registry/reg-cofx global-registry cofx-id cofx-fn))
 
 (defn inject-cofx
   ([id]
@@ -44,7 +45,7 @@
                                (do
                                  (swap! errors conj {:type    :missing-cofx
                                                      :level   :warn
-                                                     :message (str "No such cofx named " (pr-str id) ". Returning previous context.")})
+                                                     :message (str "No such cofx named " (pr-str id) ". Returning previous coeffects.")})
                                  ctx)))
                            {:db     curr-state
                             ::store store}
@@ -82,15 +83,11 @@
 
 (defn reg-sub
   ([sub-id]
-   (let [sub {:sub-f (fn [db _] db) :signals []}]
-     (swap! global-registry assoc-in [:sub sub-id] sub)))
+   (reg-sub sub-id [] (fn [db _] db)))
   ([sub-id sub-f]
-   (let [sub {:sub-f sub-f :signals []}]
-     (swap! global-registry assoc-in [:sub sub-id] sub)))
+   (reg-sub sub-id [] sub-f))
   ([sub-id signals sub-f]
-   (let [sub {:sub-f sub-f :signals signals}]
-     (swap! global-registry assoc-in [:sub sub-id] sub))))
-
+   (registry/reg-sub global-registry sub-id signals sub-f)))
 
 (defn cofx-subscribe
   [coeffects [sub-id & _sub-args :as sub]]
@@ -100,23 +97,21 @@
 
 (defn reg-fx
   [fx-id f]
-  (swap! global-registry assoc-in [:fx fx-id] f))
+  (registry/reg-fx global-registry fx-id f))
 
 (defn reg-event-fx
   ([event-fx-id f]
-   (let [fx {:event-f f}]
-     (swap! global-registry assoc-in [:event event-fx-id] fx)))
+   (reg-event-fx event-fx-id nil f))
   ([event-fx-id coeffects f]
-   (let [fx {:event-f f :coeffects coeffects}]
-     (swap! global-registry assoc-in [:event event-fx-id] fx))))
+   (registry/reg-event-fx global-registry event-fx-id coeffects f)))
 
 (defn reg-event-db
   [event-id event-f]
-  (let [event {:event-f (fn [{:keys [db]} event] {:db (event-f db event)})}]
-    (swap! global-registry assoc-in [:event event-id] event)))
+  (registry/reg-event-db global-registry event-id event-f))
 
-(defn clear-subscription-cache! []
-  (swap! global-registry dissoc :sub))
+(defn clear-subscription-cache!
+  []
+  (registry/clear-subscription-cache! global-registry))
 
 (defn snapshot-sub
   [{:keys [store]} sub]
@@ -127,29 +122,29 @@
   (store/snapshot-state store))
 
 (defn init
-  [{:keys [initial-value queue error-handler store]
+  [{:keys [initial-value queue error-handler store registry]
     :or   {initial-value {}
+           registry      global-registry
            error-handler log-and-continue-error-handler
            queue         stable-queue/event-queue
            store         stores.atom/store}}]
-  (let [store*         (store global-registry initial-value)
-        handler*       (handler global-registry store* error-handler)
+  (let [store*         (store registry initial-value)
+        handler*       (handler registry store* error-handler)
         queue*         (queue handler* error-handler)
         use-sub*       (fn use-sub* [sub]
                          (store/use-sub store* sub))
+        dispatch-sync* (fn dispatch-sync* [event]
+                         (handler* queue* event))
         ctx            {:store         store*
                         :error-handler error-handler
                         :handler       handler*
                         :queue         queue*
-                        :use-sub       use-sub*}
+                        :use-sub       use-sub*
+                        :registry      registry
+                        :dispatch-sync dispatch-sync*}
         dispatch*      (fn dispatch* [event]
-                         (dispatch ctx event))
-        dispatch-sync* (fn dispatch-sync* [event]
-                         (handler* queue* event))]
-    (assoc ctx
-      :dispatch dispatch*
-      :use-sub use-sub*
-      :dispatch-sync dispatch-sync*)))
+                         (dispatch ctx event))]
+    (assoc ctx :dispatch dispatch*)))
 
 (defonce global-context
   (init {}))

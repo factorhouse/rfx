@@ -60,13 +60,13 @@
 
 ;; Event Queue Abstraction
 (defprotocol IEventQueue
-
   ;; -- API
   (push [this event])
   (add-post-event-callback [this id callback-fn])
   (remove-post-event-callback [this id])
-  (purge [this])
+  (purge [this]))
 
+(defprotocol IFiniteStateMachine
   ;; -- Implementation via a Finite State Machine
   (-fsm-trigger [this trigger arg])
 
