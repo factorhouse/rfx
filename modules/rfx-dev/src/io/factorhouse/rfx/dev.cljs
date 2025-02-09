@@ -1,10 +1,11 @@
 (ns io.factorhouse.rfx.dev
   (:require [clojure.string :as str]
-            [com.stuartsierra.dependency :as dep]
             [goog.object :as obj]
             [io.factorhouse.hsx.core :as hsx]
             [io.factorhouse.rfx.core :as rfx]
             [io.factorhouse.rfx.queue :as queue]
+            [io.factorhouse.rfx.queues.stable :as stable-queue]
+            [io.factorhouse.rfx.stats :as stats]
             [io.factorhouse.rfx.store :as store]
             [sci.core :as sci]
             ["react" :as react]
@@ -14,6 +15,7 @@
             ["@dagrejs/dagre" :as Darge]
             ["dayjs" :as dayjs]
             ["dayjs/plugin/relativeTime" :as relativeTime]))
+
 
 (.extend dayjs relativeTime)
 
@@ -44,7 +46,7 @@
    :repl-history []
    :sub-log      {}
    :filters      {:sub {:show-inactive? true}}
-   :epoch        0
+   :epoch        []
    :open?        false
    :theme        (get-system-theme)})
 
@@ -148,8 +150,25 @@
 
 (rfx/reg-event-db
   ::_increment-epoch
+  (fn [db [_ render-perf]]
+    (update db :epoch conj render-perf)))
+
+(rfx/reg-sub
+  ::_epoch
   (fn [db _]
-    (update db :epoch inc)))
+    (:epoch db)))
+
+(rfx/reg-sub
+  ::_current_epoch
+  [[::_epoch]]
+  (fn [epoch _]
+    (count epoch)))
+
+(rfx/reg-sub
+  ::_epoch-perf
+  [[::_epoch]]
+  (fn [epoch _]
+    (stats/stats epoch)))
 
 (rfx/reg-event-db
   ::_mark-event
@@ -161,13 +180,13 @@
   (fn [db [_ id sub ts display-name]]
     (update-in db [:sub-log (first sub) :watchers]
                (fn [watchers]
-                 (assoc watchers id {:last-observed  ts
-                                     :first-observed ts
-                                     :display-name   display-name
-                                     :render-count   0
+                 (assoc watchers id {:last-observed   ts
+                                     :first-observed  ts
+                                     :display-name    display-name
+                                     :render-count    0
                                      :force-re-render 0
-                                     :id             id
-                                     :args           (vec (rest sub))})))))
+                                     :id              id
+                                     :args            (vec (rest sub))})))))
 
 (rfx/reg-event-db
   ::_mark-sub-re-render
@@ -277,8 +296,12 @@
       (store/snapshot-state store))
 
     (snapshot-reset! [_ newval]
-      (dev-dispatch [::_increment-epoch])
-      (store/snapshot-reset! store newval))))
+      (prn "Reset?")
+      (let [start  (js/performance.now)
+            newval (store/snapshot-reset! store newval)
+            end    (js/performance.now)]
+        (dev-dispatch [::_increment-epoch (- end start)])
+        newval))))
 
 (defn ensure-rfx-dev! []
   (let [body     (.-body js/document)
@@ -635,6 +658,14 @@
                      :className rfx-secondary-button-class}
             "Download"]]]])]]))
 
+(defn store-view
+  []
+  (let [current-epoch (rfx/use-sub [::_current_epoch])
+        stats         (rfx/use-sub [::_epoch-perf])]
+    [:div
+     [:p "Curent epoch " current-epoch]
+     [:pre (pr-str stats)]]))
+
 (defn rfx-slide []
   (let [theme    (rfx/use-sub [::ui-theme])
         open?    (rfx/use-sub [::open?])
@@ -648,6 +679,8 @@
            [:> TabList {:className "flex space-x-2 grow"}
             [:> Tab {:className rfx-primary-tab-class}
              "Live view"]
+            [:> Tab {:className rfx-primary-tab-class}
+             "Store"]
             [:> Tab {:className rfx-primary-tab-class}
              "Registry"]
             [:> Tab {:className rfx-primary-tab-class}
@@ -669,6 +702,8 @@
           [:> TabPanels {:className "h-full"}
            [:> TabPanel {:className "h-full"}
             [live-view]]
+           [:> TabPanel {:className "h-full"}
+            [store-view]]
            [:> TabPanel {:className "h-full"}
             [registry-view]]
            [:> TabPanel {:className "h-full"}
@@ -693,10 +728,19 @@
   (let [dev-dispatch (:dispatch dev-context)
         use-dev-sub  (:use-sub dev-context)]
     (init! app-context)
-    (let [next-ctx (-> app-context
-                       (update :store trace-store dev-dispatch use-dev-sub)
-                       (update :queue trace-queue dev-dispatch)
-                       (update :error-handler trace-error-handler dev-dispatch))]
-      (assoc next-ctx :use-sub
-                      (fn trace-use-sub* [sub]
-                        (store/use-sub (:store next-ctx) sub))))))
+    (let [next-ctx      (-> app-context
+                            (update :store trace-store dev-dispatch use-dev-sub)
+                            (update :error-handler trace-error-handler dev-dispatch))
+          handler       (rfx/handler rfx/global-registry (:store next-ctx) (:error-handler next-ctx))
+          queue         (trace-queue (stable-queue/event-queue handler (:error-handler next-ctx))
+                                     dev-dispatch)
+          use-sub       (fn trace-use-sub* [sub]
+                          (store/use-sub (:store next-ctx) sub))
+          next-ctx      (assoc next-ctx :use-sub use-sub
+                                        :handler handler
+                                        :queue queue)
+          dispatch      (fn [event]
+                          (rfx/dispatch next-ctx event))
+          dispatch-sync (fn [event]
+                          (handler queue event))]
+      (assoc next-ctx :dispatch dispatch :dispatch-sync dispatch-sync))))
