@@ -3,30 +3,36 @@
             #?(:cljs ["react" :as react])))
 
 (defn- reaction
-  [prev-cache next-db curr-registry cache store [sub-id & _sub-args :as sub]]
+  [prev-cache next-db curr-registry cache cache-diff store [sub-id & _sub-args :as sub]]
   (if-let [{:keys [sub-f signals]} (get-in curr-registry [:sub sub-id])]
     (if (contains? prev-cache sub)
       (if (seq signals)
         (let [prev-val         (get prev-cache sub)
-              realized-signals (map #(reaction prev-cache next-db curr-registry cache store %) signals)
+              realized-signals (map #(reaction prev-cache next-db curr-registry cache cache-diff store %) signals)
               signals-updated? (some first realized-signals)]
           (if signals-updated?
             (let [realized-signals (mapv second realized-signals)
                   realized-signals (if (= 1 (count realized-signals))
                                      (first realized-signals)
                                      realized-signals)
-                  result           (sub-f realized-signals sub)]
+                  result           (or (get @cache sub) (sub-f realized-signals sub))
+                  diff?            (or (get @cache-diff sub)
+                                       (not= result prev-val))]
+              (swap! cache-diff assoc sub diff?)
               (swap! cache assoc sub result)
-              [(not= result prev-val) result])
+              [diff? result])
             (do
               (swap! cache assoc sub prev-val)
               [false prev-val])))
 
         ;; Else depends on app db, recompute result
-        (let [result   (sub-f next-db sub)
-              prev-val (get prev-cache sub)]
+        (let [result   (or (get @cache sub) (sub-f next-db sub))
+              prev-val (get prev-cache sub)
+              diff?    (or (get @cache-diff sub)
+                           (not= result prev-val))]
+          (swap! cache-diff assoc sub diff?)
           (swap! cache assoc sub result)
-          [(not= result prev-val) result]))
+          [diff? result]))
 
       ;; Else never seen subscription, compute from ground-up.
       [true (store/subscribe store sub)])
@@ -78,8 +84,9 @@
       (let [curr-listeners (vals @listeners)
             curr-subs      (into #{} (map :sub) curr-listeners)
             curr-registry  @registry
+            cache-diff     (atom {})
             sub-notify?    (into {} (map (fn [sub]
-                                           (let [[notify? _] (reaction prev-cache newval curr-registry subscription-cache this sub)]
+                                           (let [[notify? _] (reaction prev-cache newval curr-registry subscription-cache cache-diff this sub)]
                                              [sub notify?])))
                                  curr-subs)]
         (doseq [{:keys [listener sub]} curr-listeners]
