@@ -35,7 +35,7 @@
   (delay (createRoot (.getElementById js/document "rfx-dev"))))
 
 (defn init!
-  [app-context]
+  [app-context app-context-id]
 
   (ensure-rfx-dev!)
 
@@ -51,23 +51,26 @@
                 [views/rfx-slide]]]])))
 
 (defn wrap-dev
-  [app-context]
-  (let [dev-dispatch (:dispatch db/context)
-        use-dev-sub  (:use-sub db/context)]
-    (init! app-context)
-    (let [next-ctx      (-> app-context
-                            (update :store dev.store/trace-store dev-dispatch use-dev-sub)
-                            (update :error-handler trace-error-handler dev-dispatch))
-          handler       (rfx/handler rfx/global-registry (:store next-ctx) (:error-handler next-ctx))
-          queue         (dev.queue/trace-queue (stable-queue/event-queue handler (:error-handler next-ctx))
-                                               dev-dispatch)
-          use-sub       (fn trace-use-sub* [sub]
-                          (store/use-sub (:store next-ctx) sub))
-          next-ctx      (assoc next-ctx :use-sub use-sub
-                                        :handler handler
-                                        :queue queue)
-          dispatch      (fn [event]
-                          (rfx/dispatch next-ctx event))
-          dispatch-sync (fn [event]
-                          (handler queue event))]
-      (assoc next-ctx :dispatch dispatch :dispatch-sync dispatch-sync))))
+  ([app-context]
+   (wrap-dev app-context (str (gensym "rfx-ctx"))))
+
+  ([app-context id]
+   (let [dev-dispatch (:dispatch db/context)
+         use-dev-sub  (:use-sub db/context)]
+     (init! app-context id)
+     (let [next-ctx      (-> app-context
+                             (update :store dev.store/trace-store dev-dispatch use-dev-sub)
+                             (update :error-handler trace-error-handler dev-dispatch))
+           handler       (rfx/handler rfx/global-registry (:store next-ctx) (:error-handler next-ctx))
+           queue         (dev.queue/trace-queue (stable-queue/event-queue handler (:error-handler next-ctx))
+                                                dev-dispatch)
+           use-sub       (fn trace-use-sub* [sub]
+                           (store/use-sub (:store next-ctx) sub))
+           next-ctx      (assoc next-ctx :use-sub use-sub
+                                         :handler handler
+                                         :queue queue)
+           dispatch      (fn [event]
+                           (rfx/dispatch next-ctx event))
+           dispatch-sync (fn [event]
+                           (handler queue event))]
+       (assoc next-ctx :dispatch dispatch :dispatch-sync dispatch-sync)))))

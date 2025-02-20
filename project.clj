@@ -9,10 +9,13 @@
                  [org.clojure/tools.logging "1.3.0"]]
   :source-paths ["modules/rfx/src"
                  "modules/re-frame-bridge/src"
-                 "modules/rfx-dev/src"
-                 "modules/rfx-demo/src"]
+                 "modules/rfx-dev/src"]
   :profiles {:dev {:dependencies [[thheller/shadow-cljs "2.28.20"]
                                   [io.factorhouse/hsx "1.0.11"]
                                   [org.babashka/sci "0.9.44"]
-                                  [clj-kondo "2025.01.16"]]}}
+                                  [clj-kondo "2025.01.16"]
+                                  [datascript "1.7.4"]]
+                   :source-paths ["examples/datascript/src"
+                                  "examples/re-frame-bridge-todomvc/src"
+                                  "examples/rfx-todomvc/src"]}}
   :repl-options {:init-ns io.factorhouse.rfx.core})

@@ -1,7 +1,8 @@
-(ns io.factorhouse.rfx.demo
+(ns rfx-todomvc.ui
   (:require [io.factorhouse.hsx.core :as hsx]
             [io.factorhouse.rfx.core :as rfx]
             [io.factorhouse.rfx.dev :refer [wrap-dev]]
+            ["react" :as react]
             ["react-dom/client" :refer [createRoot]]))
 
 (defonce root

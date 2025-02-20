@@ -1,10 +1,15 @@
-{:lein {:profile "+dev"}
+{:lein     {:profile "+dev"}
 
  :dev-http {8000 "public"}
 
  :builds
- {:app
-  {:target :browser
+ {:test
+  {:target     :esm
+   :output-dir "target/test"
+   :modules    {:rfx-test {:exports {:Button rfx.components/Button}}}}
+
+  :app
+  {:target     :browser
    :output-dir "public/js"
    :asset-path "/js"
-   :modules {:main {:entries [io.factorhouse.rfx.demo]}}}}}
+   :modules    {:main {:entries [rfx-todomvc.ui]}}}}}

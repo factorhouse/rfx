@@ -2,25 +2,32 @@
   (:require [io.factorhouse.rfx.store :as store]
             #?(:cljs ["react" :as react])))
 
-;; Runs the reaction logic: checks whether a subscription value has changed between db updates.
-;; Returns a tuple of [state-updated? next-val]
+;; I've named this function 'reaction' in homage to re-frame/reagent.
+;;
+;; Runs the reaction logic: recursively checks whether a subscription value has changed between db updates.
+;;
+;; This function walks the subscription dependency graph and checks whether signal inputs to the subscription have changed,
+;; caching the results along the way. If no signals have changed between updates, we simply return the previous value of
+;; the subscription.
+;;
+;; Subscriptions that depend solely on the app-db will always have their values recomputed between db updates.
 (defn- reaction
   [prev-cache next-db curr-registry cache cache-diff store sub]
   (if-let [{:keys [sub-f signals]} (get-in curr-registry [:sub (first sub)])]
     (cond
       ;; Already seen subscription, just return previously computed reaction
       (contains? @cache-diff sub)
-      [(get @cache-diff sub) (get @cache sub)]
+      {:updated? (get @cache-diff sub)
+       :value    (get @cache sub)}
 
       ;; Sub was previously in cache, calculate whether we need to re-compute value
       (contains? prev-cache sub)
       (if (seq signals)
         (let [prev-val         (get prev-cache sub)
-              realized-signals (map #(reaction prev-cache next-db curr-registry cache cache-diff store %) signals)
-              signals-updated? (some first realized-signals)]
-          (if signals-updated?
+              realized-signals (map #(reaction prev-cache next-db curr-registry cache cache-diff store %) signals)]
+          (if (some :updated? realized-signals)
             ;; If any of the signals have updated, recompute the value
-            (let [realized-signals (mapv second realized-signals)
+            (let [realized-signals (mapv :value realized-signals)
                   realized-signals (if (= 1 (count realized-signals))
                                      (first realized-signals)
                                      realized-signals)
@@ -29,12 +36,14 @@
                                        (not= result prev-val))]
               (vswap! cache-diff assoc sub diff?)
               (vswap! cache assoc sub result)
-              [diff? result])
+              {:updated? diff?
+               :value    result})
             ;; Else, signals haven't updated, return previous value
             (do
               (vswap! cache-diff assoc sub false)
               (vswap! cache assoc sub prev-val)
-              [false prev-val])))
+              {:updated? false
+               :value    prev-val})))
 
         ;; Sub depends solely on app db, always recompute result
         (let [result   (or (get @cache sub) (sub-f next-db sub))
@@ -43,13 +52,15 @@
                            (not= result prev-val))]
           (vswap! cache-diff assoc sub diff?)
           (vswap! cache assoc sub result)
-          [diff? result]))
+          {:updated? diff?
+           :value    result}))
 
       :else
       ;; Never seen subscription, compute from ground-up.
       (do
         (vswap! cache-diff assoc sub true)
-        [true (store/subscribe store sub)]))
+        {:updated? true
+         :value    (store/subscribe store sub)}))
 
     (throw (ex-info "Subscription does not exist in registry." {:sub sub}))))
 
@@ -101,9 +112,9 @@
               curr-subs      (into #{} (map :sub) curr-listeners)
               curr-registry  @registry
               cache-diff     (volatile! {})
-              make-reaction  #(reaction prev-cache newval curr-registry subscription-cache cache-diff this %)
+              reaction*      #(reaction prev-cache newval curr-registry subscription-cache cache-diff this %)
               sub-notify?    (into {} (map (fn [sub]
-                                             [sub (first (make-reaction sub))]))
+                                             [sub (:updated? (reaction* sub))]))
                                    curr-subs)]
           (doseq [{:keys [listener sub]} curr-listeners]
             (when (sub-notify? sub)
