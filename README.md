@@ -1,8 +1,8 @@
 # Rfx
 
-Rfx is a modern, API-compatible drop-in replacement for [re-frame](https://github.com/day8/re-frame), designed for use with React 18+ and a pluggable storage backend.
+Rfx is a modern, API-compatible drop-in replacement for [re-frame](https://github.com/day8/re-frame), designed for use with React 18+ and **no dependency on Reagent**. Its API is based on hooks.
 
-It integrates seamlessly with vanilla React, popular wrapper libraries like [uix](https://github.com/pitch-io/uix) or even [Reagent](https://github.com/reagent-project/reagent), giving you the flexibility to adopt modern React standards while leveraging familiar patterns from re-frame.
+It integrates seamlessly with vanilla React, popular wrapper libraries like [uix](https://github.com/pitch-io/uix) or even [Reagent](https://github.com/reagent-project/reagent).
 
 ## Why choose Rfx?
 
@@ -28,7 +28,7 @@ This library is part of our ongoing efforts at Factor House to migrate large Clo
 * **API Compatibility**: Drop-in replacement for re-frame—no need to rewrite your event handlers or subscriptions.
 * **Modern React Support**: Fully compatible with React 18+, including features like Concurrent Rendering.
 * **Performance**: rfx takes full advantage of React's batched updates ... 
-* **Flexible Storage**: Pluggable backend system for state management, with a [ClojureScript atom](https://cljs.github.io/api/cljs.core/atom) as the default backend.
+* **Flexible Storage**: Pluggable storage backend for state management, with a ClojureScript atom as the default backend.
 * **Framework Agnostic**: Works with vanilla React, uix, and even Reagent (though migrating from Reagent is recommended).
 * **Future-Proof**: Stay aligned with React's ongoing development and ecosystem advancements.
 
@@ -43,11 +43,11 @@ This library is part of our ongoing efforts at Factor House to migrate large Clo
 
 The `io.factorhouse/re-frame-bridge` library is a drop-in replacement for [re-frame](https://github.com/day-8/re-frame) allowing you to interface with Rfx through a familiar `re-frame.core` namespace. 
 
-This library is primarily intended to be used by existing codebases who are seeing a more modern React alternative to Reagent/Re-frame.
+This library is primarily intended to be used by existing codebases who are seeking to migrate off Reagent/Re-frame.
 
-A compatability layer has been written for `re-frame.core` and all functions have been implemented. 
+A compatability layer has been written for the `re-frame.core` namespace and all public functions have been implemented. 
 
-As this is a compatability layer, advanced features of Rfx (such as React Contexts, hooks etc) cannot be used as easily from code using the bridging library.
+As this is a compatability layer, advanced features of Rfx (such as React Contexts, hooks etc) cannot be used as ergonomically from code using the bridging library.
 
 Check out the [re-frame-bridge-todo-mvc]() example for reference.
 
@@ -56,19 +56,17 @@ Check out the [re-frame-bridge-todo-mvc]() example for reference.
 ```clojure 
 ;; deps.edn
 {:deps {io.factorhouse/rfx {:mvn/version "1.0.0"} ;; Core library
-        io.factorhouse/rfx-dev {:mvn/version "1.0.0"} ;; Useful DX tools
+        io.factorhouse/rfx-dev {:mvn/version "1.0.0"} ;; Useful (and optional) DX tools
         }}
 ```
 
-The `io.factorhouse/rfx` library presents a Re-frame like architecture built upon modern React foundations. 
-
-While Re-frames event+subscription system has been retained (and will be forever backwards compatible with Rfx), we intend to push forward with our own ideas and abstractions. 
+The `io.factorhouse/rfx` library presents a Re-frame like architecture built on modern React foundations. Consumers of this library interface with the API primarily through the `io.factorhouse.rfx.core` namespace.
 
 Check out the [rfx-todo-mvc]() example for reference.
 
 #### Rfx: Contexts
 
-Rfx uses [React Context](https://react.dev/learn/passing-data-deeply-with-context) for child components wanting to access global application state.
+Rfx uses [React Context](https://react.dev/learn/passing-data-deeply-with-context) for child components wanting access global application state (subscriptions, dispatching events, accessing the state store etc).
 
 By reading this section you will see how building on top of React contexts has several advantages to re-frame's singleton state approach.
 
@@ -79,11 +77,11 @@ Simply wrap your root component around a `RfxContextProvider` and you are ready 
 ```clojure 
 ;; (:require [io.factorhouse.rfx.core :as rfx])
 
-;; To use the default global state/options, pass in no opts to the context provider
-[:> rfx/RfxContextProvider #js {}
-  [my-root-component]]
+;; Option 1: use global application state (like re-frame)
+;; Wrapping your root component with no RfxContextProvider means your UI will use the default global state/configuration:
+[my-root-component] ;; Equivilant to [:> rfx/RfxContextProvider #js {} [my-root-component]]
 
-;; Create a custom context:
+;; Option 2: initialize your own scoped context
 (defonce custom-rfx-ctx (rfx/init {:initial-value {:foo :bar}}))
 
 [:> rfx/RfxContextProvider #js {"value" custom-rfx-context}
@@ -110,10 +108,23 @@ Both of these can be used within `my-root-component` like so:
 
 Depending on the value of the `RfxContextProvider` from a parent component will dictate:
 
-a) Which store `use-sub` will subscribe to
-b) Which event queue `dispatch` will send events to
+1) Which store `use-sub` will subscribe to
+2) Which event queue `dispatch` will send events to
 
-This allows for your components to be isolated and thus allows for easier testing/integration with tools such as [StorybookJS](https://storybook.js.org/).
+This allows for your components to be isolated and thus allows for easier testing/integration with tools such as [StorybookJS](https://storybook.js.org/):
+
+```clojure
+(defmethod storybook/story "Kpow/Sampler/KJQFilter" [_]
+  (let [{:keys [dispatch] :as ctx} (rfx/init {})]
+    {:component [:> rfx/ReactContextProvider #js {"value" ctx} [kjq/editor "kjq-filter-label"]]
+     :stories   {:Filter     {}
+                 :ValidInput {:play (fn [x]
+                                      (dispatch [:input/context :kjq "foo"])
+                                      (dispatch [:input/context :kjq "foo"]))}}}))
+```
+
+In this example, each story operates within its own isolated context, allowing components to be tested independently without relying on the global application state. This makes it easier to develop, test, and iterate on individual components, especially when using tools like Storybook for component-driven development.
+
 
 #### Rfx: accessing context outside of React 
 
@@ -121,7 +132,7 @@ So far you have only seen how we interface with Rfx from within React components
 
 However, oftentimes you will have systems external to React that want to integrate with Rfx: 
 
-* Routers like [reitit](https://github.com/metosin/reitit) when a new page change event comes in
+* Routers like [reitit](https://github.com/metosin/reitit) which dispatch when a new page change event is emitted
 * WebSocket connections or HTTP responses
 
 External systems will need to specify which Rfx instance they would like to communicate with via an extra argument:
@@ -133,7 +144,7 @@ External systems will need to specify which Rfx instance they would like to comm
 (.on ws-instance "message" #(rfx/dispatch rfx-context [:ws/message %]))
 ```
 
-Generally this is no problem, as you would generally initialize all your services from inside an `init` function that has scope to your applications Rfx instance:
+Generally this is little overhead, as you it's typical to initialize all your services from inside an `init` function that has scope to your applications Rfx context:
 
 ```clojure
 (defn init []
@@ -153,7 +164,11 @@ You can get the current snapshot of a subscription outside of a React context by
     ))
 ```
 
-If anything this might be Rfx's major selling point! Accessing subscriptions outside of React with re-frame was always cumbersome and somewhat hacky.
+If anything this might be Rfx's major selling point! Accessing subscriptions outside of React with re-frame has always been cumbersome and somewhat hacky.
+
+You can access the current value of the application db by calling `io.factorhouse.rfx.core/snapshot-state`.
+
+**Note**: both `snapshot-state` and `snapshot-sub` are not 'reactive' - as in, they will not cause a re-render of a component when its value changes. These two functions are intended to be used outside of a React context.
 
 #### Configuring the Rfx instance
 
