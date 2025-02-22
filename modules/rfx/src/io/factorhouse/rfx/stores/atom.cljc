@@ -101,9 +101,9 @@
 
        :clj (throw (ex-info "use-sub cannot be called from the JVM." {:sub sub}))))
 
-  (snapshot-state [_] @app-db)
+  (snapshot [_] @app-db)
 
-  (snapshot-reset! [this newval]
+  (next-state! [this newval]
     (locking this
       (let [prev-cache @subscription-cache]
         (reset! app-db newval)

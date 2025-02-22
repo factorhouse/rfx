@@ -166,9 +166,9 @@ You can get the current snapshot of a subscription outside of a React context by
 
 If anything this might be Rfx's major selling point! Accessing subscriptions outside of React with re-frame has always been cumbersome and somewhat hacky.
 
-You can access the current value of the application db by calling `io.factorhouse.rfx.core/snapshot-state`.
+You can access the current value of the application db by calling `io.factorhouse.rfx.core/snapshot`.
 
-**Note**: both `snapshot-state` and `snapshot-sub` are not 'reactive' - as in, they will not cause a re-render of a component when its value changes. These two functions are intended to be used outside of a React context.
+**Note**: both `snapshot` and `snapshot-sub` are not 'reactive' - as in, they will not cause a re-render of a component when its value changes. These two functions are intended to be used outside of a React context.
 
 #### Configuring the Rfx instance
 

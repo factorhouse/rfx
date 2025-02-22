@@ -345,7 +345,7 @@
         snapshots   (rfx/use-sub [::db/snapshots])
         app-context (db/use-app-context)]
     [:div {:className rfx-content-class}
-     [:button {:on-click  #(dispatch [::db/snapshot {:db (store/snapshot-state (:store app-context))
+     [:button {:on-click  #(dispatch [::db/snapshot {:db (store/snapshot (:store app-context))
                                                      :id (str (gensym "snapshot"))
                                                      :ts (util/now)}])
                :className rfx-primary-button-class}

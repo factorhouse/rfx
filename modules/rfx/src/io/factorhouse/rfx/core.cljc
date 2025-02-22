@@ -37,7 +37,7 @@
     (let [curr-registry @registry
           errors        (atom [])]
       (if-let [{:keys [event-f coeffects]} (get-in curr-registry [:event event-id])]
-        (let [curr-state (store/snapshot-state store)
+        (let [curr-state (store/snapshot store)
               ctx        (reduce
                            (fn [ctx {:keys [id value]}]
                              (if-let [cofx-fn (get-in curr-registry [:cofx id])]
@@ -53,7 +53,7 @@
               result     (event-f ctx event)]
 
           (when-let [next-db (:db result)]
-            (store/snapshot-reset! store next-db))
+            (store/next-state! store next-db))
 
           (when-let [dispatch-event (:dispatch result)]
             (queue/push event-queue dispatch-event))
@@ -117,9 +117,9 @@
   [{:keys [store]} sub]
   (store/subscribe store sub))
 
-(defn snapshot-state
+(defn snapshot
   [{:keys [store]}]
-  (store/snapshot-state store))
+  (store/snapshot store))
 
 (defn init
   [{:keys [initial-value queue error-handler store registry]

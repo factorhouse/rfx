@@ -25,8 +25,8 @@
 
         (store/use-sub store sub)))
 
-    (snapshot-state [_]
-      (store/snapshot-state store))
+    (snapshot [_]
+      (store/snapshot store))
 
     (snapshot-reset! [_ newval]
       (let [start  (js/performance.now)

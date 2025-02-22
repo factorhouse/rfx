@@ -10,7 +10,7 @@
      Usage: `(let [state (use-sub store [:subscription-id] ...)`
 
      The returned hook allows components to reactively subscribe to changes in the store.")
-  (snapshot-reset! [_ newval]
-    "Resets the store to newval without regard for the current value.")
-  (snapshot-state [this]
-    "Returns the current internal state of the store for inspection or debugging purposes."))
+  (next-state! [_ inputs]
+    "Transitions the store to its next state based on some inputs.")
+  (snapshot [this]
+    "Returns the current internal state of the store for inspection or debugging purposes. Intended to be called outside a React context."))

@@ -44,8 +44,8 @@
        (deref [_] (store/subscribe app-db sub)))))
 
 (defn make-restore-fn []
-  (let [prev-state @app-db]
+  (let [prev-state (store/snapshot app-db)]
     (fn []
-      (store/snapshot-reset! app-db prev-state))))
+      (store/next-state! app-db prev-state))))
 
 (def clear-subscription-cache! rfx/clear-subscription-cache!)

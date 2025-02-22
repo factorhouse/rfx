@@ -40,13 +40,13 @@
           (fn get-sub-snapshot* []
             (store/subscribe this sub))))
 
-      (snapshot-reset! [_ tx-data]
+      (next-state! [_ tx-data]
         (d/transact! conn tx-data)
         (reset! cache {})
         (doseq [[_ {:keys [listener]}] @listeners]
           (listener)))
 
-      (snapshot-state [_]
+      (snapshot [_]
         @conn))))
 
 (defn init
