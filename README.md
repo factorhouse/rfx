@@ -126,16 +126,16 @@ This allows for your components to be isolated and thus allows for easier testin
 In this example, each story operates within its own isolated context, allowing components to be tested independently without relying on the global application state. This makes it easier to develop, test, and iterate on individual components, especially when using tools like Storybook for component-driven development.
 
 
-#### Rfx: accessing context outside of React 
+#### Rfx: interacting with Rfx outside of React
 
-So far you have only seen how we interface with Rfx from within React components (via Contexts and Hooks). 
+So far you have only seen how we interface with Rfx from within React components (via React Contexts and Hooks). 
 
-However, oftentimes you will have systems external to React that want to integrate with Rfx: 
+However, oftentimes you will have systems external to React that need to integrate with Rfx: 
 
 * Routers like [reitit](https://github.com/metosin/reitit) which dispatch when a new page change event is emitted
 * WebSocket connections or HTTP responses
 
-External systems will need to specify which Rfx instance they would like to communicate with via an extra argument:
+External systems need to specify which Rfx instance they would like to communicate with via an extra argument when dispatching:
 
 ```clojure
 (defonce rfx-context (rfx/init {}))
@@ -176,10 +176,11 @@ Calling `io.factorhouse.rfx.core/init` returns a new Rfx instance. So far we hav
 
 `rfx/init` accepts the following keys: 
 
-* `:queue` - (optional) the event queue used to process messages. Default Queue is the same as re-frame's (uses goog.async.nextTick to handle events)
+* `:queue` - (optional) the event queue used to process messages. Default queue is the same as re-frame's (uses `goog.async.nextTick` to process events)
 * `:error-handler` - (optional) error handler (default ErrorHandler is the same as re-frame's - something that logs and continues)
 * `:store` - (optional) the store used to house your applications state. Default store is backed by a Clojure atom.
 * `:initial-value` - (optional) the initial value of the store. Default is `{}`.
+* `:registry` - (optional) the registry the Rfx instance uses which defines all events/subscriptions/etc available. Defaults to the global registry.
 
 #### Custom error handlers
 
@@ -221,7 +222,7 @@ Simply wrap your Rfx instance at development time with the `io.factorhouse.rfx.d
 
 ### Rfx uses React 18+'s automatic batched updates + concurrent rendering out of the box
 
-The default Rfx store is implemented by the [useSyncExternalStore](https://react.dev/reference/react/useSyncExternalStore) hook. This allows Rfx to take advantage of [React's automatic batching](https://medium.com/@Brahmbhatnilay/understanding-automatic-batching-in-react-18-enhancing-performance-with-optimized-state-updates-9658d04e5785) found in React 18+. This is in contrast to Reagent's own batching logic for RAtoms that does not play well with modern React.
+The default Rfx store is implemented by the [useSyncExternalStore](https://react.dev/reference/react/useSyncExternalStore) hook. This allows Rfx to take advantage of [React's automatic batching](https://medium.com/@Brahmbhatnilay/understanding-automatic-batching-in-react-18-enhancing-performance-with-optimized-state-updates-9658d04e5785) capabilities found in React 18+. This is in contrast to Reagent's own batching logic for RAtoms that does not play well with modern React.
 
 **Note:** if your application depends on the specific timing of updates that is coupled to Reagent's implementation details then it's possible you might experience race conditions when migrating to Rfx.
 
@@ -229,9 +230,9 @@ The default Rfx store is implemented by the [useSyncExternalStore](https://react
 
 Even the compatible `re-frame.core/subscribe` function returns a subscription hook wrapped in a [Clojure delay](https://clojuredocs.org/clojure.core/delay).
 
-This means you will be able to use Rfx from any modern React wrapper (like HSX or Uix) or even vanilla JavaScript.
+This means you will be able to use Rfx from any modern React wrapper (like HSX or Uix) or even plain JavaScript.
 
-**Note:** this means all the caveats of [React hooks](https://react.dev/reference/rules/rules-of-hooks) also apply to Rfx subscriptions! This also includes the re-frame-bridge compatibility layer.
+**Note:** this means all the caveats of [React hooks](https://react.dev/reference/rules/rules-of-hooks) also apply to Rfx subscriptions! This is also true for the re-frame-bridge compatibility layer.
 
 Reagent users will have to wrap components in the `:f>` shorthand to indicate you are inside a functional component:
 
@@ -250,15 +251,6 @@ We highly suggest reading the most excellent [official re-frame docs](https://gi
 
 ## License
 
-Copyright © 2025 FIXME
+Distributed under the Apache 2.0 License.
 
-This program and the accompanying materials are made available under the
-terms of the Eclipse Public License 2.0 which is available at
-http://www.eclipse.org/legal/epl-2.0.
-
-This Source Code may also be made available under the following Secondary
-Licenses when the conditions for such availability set forth in the Eclipse
-Public License, v. 2.0 are satisfied: GNU General Public License as published by
-the Free Software Foundation, either version 2 of the License, or (at your
-option) any later version, with the GNU Classpath Exception which is available
-at https://www.gnu.org/software/classpath/license.html.
+Copyright (c) [Factor House](https://factorhouse.io)
