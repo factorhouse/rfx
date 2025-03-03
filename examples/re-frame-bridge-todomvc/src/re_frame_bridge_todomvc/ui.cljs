@@ -8,38 +8,38 @@
   (createRoot (.getElementById js/document "app")))
 
 (rf/reg-event-db
-  :todos/add
-  (fn [db [_ todo]]
-    (let [id (str (gensym "todo"))
-          ts (js/Date.now)]
-      (update db :todos assoc id {:value todo :ts ts :id id :completed? false}))))
+ :todos/add
+ (fn [db [_ todo]]
+   (let [id (str (gensym "todo"))
+         ts (js/Date.now)]
+     (update db :todos assoc id {:value todo :ts ts :id id :completed? false}))))
 
 (rf/reg-event-db
-  :todos/remove
-  (fn [db [_ id]]
-    (update db :todos dissoc id)))
+ :todos/remove
+ (fn [db [_ id]]
+   (update db :todos dissoc id)))
 
 (rf/reg-sub
-  :todos/view
-  (fn [db _]
-    (->> db :todos vals (sort-by :ts))))
+ :todos/view
+ (fn [db _]
+   (->> db :todos vals (sort-by :ts))))
 
 (rf/reg-sub
-  :todos/view1
-  [[:todos/view]]
-  (fn [view _]
-    (first view)))
+ :todos/view1
+ [[:todos/view]]
+ (fn [view _]
+   (first view)))
 
 (rf/reg-sub
-  :todos/view2
-  [[:todos/view1]]
-  (fn [_ _]
-    :foo))
+ :todos/view2
+ [[:todos/view1]]
+ (fn [_ _]
+   :foo))
 
 (rf/reg-sub
-  :todos/xyz
-  (fn [db _]
-    (->> db :todos vals (sort-by :ts))))
+ :todos/xyz
+ (fn [db _]
+   (->> db :todos vals (sort-by :ts))))
 
 (defn todos-input []
   (let [dispatch (rf/use-dispatch)]

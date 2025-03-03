@@ -3,14 +3,14 @@
             [io.factorhouse.rfx.core :as rfx]))
 
 (rfx/reg-sub
-  :counter
-  (fn [db _]
-    (:counter db)))
+ :counter
+ (fn [db _]
+   (:counter db)))
 
 (rfx/reg-event-db
-  :counter/increment
-  (fn [db _]
-    (update db :counter inc)))
+ :counter/increment
+ (fn [db _]
+   (update db :counter inc)))
 
 (defn wrap-rfx
   [initial-value comp]
@@ -25,4 +25,4 @@
 
 (defn Button []
   (hsx/create-element
-    [wrap-rfx {:counter 0} [button]]))
+   [wrap-rfx {:counter 0} [button]]))

@@ -16,33 +16,33 @@
   (createRoot (.getElementById js/document "app")))
 
 (rfx/reg-event-db
-  :db/init!
-  (constantly
-    [{:db/id -1
-      :name  "Maksim"
-      :age   45
-      :aka   ["Max Otto von Stierlitz", "Jack Ryan"]}]))
+ :db/init!
+ (constantly
+  [{:db/id -1
+    :name  "Maksim"
+    :age   45
+    :aka   ["Max Otto von Stierlitz", "Jack Ryan"]}]))
 
 (rfx/reg-sub
-  :db/aka
-  (fn [db [_ name]]
-    (d/q
-      '[:find ?n ?a
-        :in $ ?name
-        :where [?e :aka ?name]
-        [?e :name ?n]
-        [?e :age ?a]]
-      db name)))
+ :db/aka
+ (fn [db [_ name]]
+   (d/q
+    '[:find ?n ?a
+      :in $ ?name
+      :where [?e :aka ?name]
+      [?e :name ?n]
+      [?e :age ?a]]
+    db name)))
 
 (defn aka-view []
   (let [person   (rfx/use-sub [:db/aka "Max Otto von Stierlitz"])
         dispatch (rfx/use-dispatch)]
 
     (react/useEffect
-      (fn []
-        (dispatch [:db/init!])
-        (constantly nil))
-      #js [])
+     (fn []
+       (dispatch [:db/init!])
+       (constantly nil))
+     #js [])
 
     (if person
       [:div "Found person named " person "!"]
@@ -54,7 +54,7 @@
 
 (defn init []
   (.render
-    root
-    (hsx/create-element [ui])))
+   root
+   (hsx/create-element [ui])))
 
 (init)

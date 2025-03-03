@@ -39,17 +39,17 @@
       (if-let [{:keys [event-f coeffects]} (get-in curr-registry [:event event-id])]
         (let [curr-state (store/snapshot store)
               ctx        (reduce
-                           (fn [ctx {:keys [id value]}]
-                             (if-let [cofx-fn (get-in curr-registry [:cofx id])]
-                               (cofx-fn ctx value)
-                               (do
-                                 (swap! errors conj {:type    :missing-cofx
-                                                     :level   :warn
-                                                     :message (str "No such cofx named " (pr-str id) ". Returning previous coeffects.")})
-                                 ctx)))
-                           {:db     curr-state
-                            ::store store}
-                           coeffects)
+                          (fn [ctx {:keys [id value]}]
+                            (if-let [cofx-fn (get-in curr-registry [:cofx id])]
+                              (cofx-fn ctx value)
+                              (do
+                                (swap! errors conj {:type    :missing-cofx
+                                                    :level   :warn
+                                                    :message (str "No such cofx named " (pr-str id) ". Returning previous coeffects.")})
+                                ctx)))
+                          {:db     curr-state
+                           ::store store}
+                          coeffects)
               result     (event-f ctx event)]
 
           (when-let [next-db (:db result)]

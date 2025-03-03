@@ -44,11 +44,11 @@
 
   (.render @root
            (hsx/create-element
-             [:> db/AppContextProvider #js {"value" app-context}
-              [:> rfx/RfxContextProvider #js {"value" db/context}
-               [:<>
-                [views/rfx-icon]
-                [views/rfx-slide]]]])))
+            [:> db/AppContextProvider #js {"value" app-context}
+             [:> rfx/RfxContextProvider #js {"value" db/context}
+              [:<>
+               [views/rfx-icon]
+               [views/rfx-slide]]]])))
 
 (defn wrap-dev
   ([app-context]
@@ -67,8 +67,8 @@
            use-sub       (fn trace-use-sub* [sub]
                            (store/use-sub (:store next-ctx) sub))
            next-ctx      (assoc next-ctx :use-sub use-sub
-                                         :handler handler
-                                         :queue queue)
+                                :handler handler
+                                :queue queue)
            dispatch      (fn [event]
                            (rfx/dispatch next-ctx event))
            dispatch-sync (fn [event]

@@ -15,13 +15,13 @@
   [f]
   (let [{:keys [registry]} (db/use-app-context)]
     (react/useSyncExternalStore
-      (fn [listener]
-        (let [id (keyword (str (gensym "listener")))]
-          (add-watch registry id (fn [_ _ _ _] (listener)))
-          (fn []
-            (remove-watch registry id))))
-      (fn []
-        (f (deref registry))))))
+     (fn [listener]
+       (let [id (keyword (str (gensym "listener")))]
+         (add-watch registry id (fn [_ _ _ _] (listener)))
+         (fn []
+           (remove-watch registry id))))
+     (fn []
+       (f (deref registry))))))
 
 (defn use-sci []
   (let [dispatch    (rfx/use-dispatch)
@@ -239,19 +239,19 @@
 
 (defn render-db-node [x]
   (hsx/create-element
-    [:div {:className "p-2 border font-mono dark:border-gray-900 border-gray-300 dark:bg-slate-500 rounded rounded-md"}
-     [:div "App DB"
-      [:> Handle #js {"type"          "source"
-                      "position"      (obj/get Position "Bottom")
-                      "isConnectable" true}]]]))
+   [:div {:className "p-2 border font-mono dark:border-gray-900 border-gray-300 dark:bg-slate-500 rounded rounded-md"}
+    [:div "App DB"
+     [:> Handle #js {"type"          "source"
+                     "position"      (obj/get Position "Bottom")
+                     "isConnectable" true}]]]))
 
 (defn render-sub-node [x]
   (hsx/create-element
-    [:div {:className "p-2 border font-mono dark:border-gray-900 border-gray-300 dark:bg-slate-500 rounded rounded-md"}
-     [:div (obj/get x "id")
-      [:> Handle #js {"type"          "target"
-                      "position"      (obj/get Position "Top")
-                      "isConnectable" true}]]]))
+   [:div {:className "p-2 border font-mono dark:border-gray-900 border-gray-300 dark:bg-slate-500 rounded rounded-md"}
+    [:div (obj/get x "id")
+     [:> Handle #js {"type"          "target"
+                     "position"      (obj/get Position "Top")
+                     "isConnectable" true}]]]))
 
 (defn live-view []
   (let [subs (use-registry :sub)
@@ -259,37 +259,37 @@
         [edges set-edges] (react/useState [])]
 
     (react/useEffect
-      (fn []
-        (let [g (create-graph)]
-          (.setGraph g #js {"rankdir" "TB"})
-          (let [next-nodes (into [{:id   "db"
-                                   :type "db"
-                                   :data {:label "db"}}]
-                                 (map build-node)
-                                 subs)
-                next-edges (mapcat build-edges subs)]
+     (fn []
+       (let [g (create-graph)]
+         (.setGraph g #js {"rankdir" "TB"})
+         (let [next-nodes (into [{:id   "db"
+                                  :type "db"
+                                  :data {:label "db"}}]
+                                (map build-node)
+                                subs)
+               next-edges (mapcat build-edges subs)]
 
-            (js/console.log "g" g)
+           (js/console.log "g" g)
 
-            (doseq [{:keys [source target]} next-edges]
-              (.setEdge g source target))
+           (doseq [{:keys [source target]} next-edges]
+             (.setEdge g source target))
 
-            (doseq [{:keys [id] :as node} next-nodes]
-              (.setNode g id (clj->js (assoc node :width (* 10 (count id)) :height 42))))
+           (doseq [{:keys [id] :as node} next-nodes]
+             (.setNode g id (clj->js (assoc node :width (* 10 (count id)) :height 42))))
 
-            (Darge/layout g)
+           (Darge/layout g)
 
-            (let [next-nodes (into [] (map (fn [{:keys [id] :as node}]
-                                             (let [position (.node g id)
-                                                   x        (obj/get position "x")
-                                                   y        (obj/get position "y")]
-                                               (assoc node :position {:x (- x (/ (* 9 (count id)) 2))
-                                                                      :y (- y 21)}))))
-                                   next-nodes)]
-              (set-nodes (clj->js next-nodes))
-              (set-edges (clj->js next-edges)))))
-        (constantly nil))
-      #js [(count subs)])
+           (let [next-nodes (into [] (map (fn [{:keys [id] :as node}]
+                                            (let [position (.node g id)
+                                                  x        (obj/get position "x")
+                                                  y        (obj/get position "y")]
+                                              (assoc node :position {:x (- x (/ (* 9 (count id)) 2))
+                                                                     :y (- y 21)}))))
+                                  next-nodes)]
+             (set-nodes (clj->js next-nodes))
+             (set-edges (clj->js next-edges)))))
+       (constantly nil))
+     #js [(count subs)])
 
     [:div {:className (util/class-names rfx-content-class "w-full h-screen")}
      [:> ReactFlow {:nodes     (clj->js nodes)
@@ -338,7 +338,6 @@
            [:pre (pr-str result)]])]]
       [:div {}
        [repl-input]]]]))
-
 
 (defn snapshots-view []
   (let [dispatch    (rfx/use-dispatch)

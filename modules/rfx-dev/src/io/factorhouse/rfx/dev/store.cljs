@@ -12,16 +12,16 @@
             _ (use-dev-sub [::db/sub-force-re-render sub id])]
 
         (react/useEffect
-          (fn []
-            (dev-dispatch [::db/mark-sub id sub (util/now) (util/component-display-name)])
-            (fn []
-              (dev-dispatch [::db/unmark-sub id sub])))
-          #js [])
+         (fn []
+           (dev-dispatch [::db/mark-sub id sub (util/now) (util/component-display-name)])
+           (fn []
+             (dev-dispatch [::db/unmark-sub id sub])))
+         #js [])
 
         (react/useEffect
-          (fn []
-            (dev-dispatch [::db/mark-sub-re-render id sub (util/now)])
-            (constantly nil)))
+         (fn []
+           (dev-dispatch [::db/mark-sub-re-render id sub (util/now)])
+           (constantly nil)))
 
         (store/use-sub store sub)))
 
