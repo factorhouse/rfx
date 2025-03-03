@@ -13,19 +13,19 @@
 
 (deftest test-reg-sub-clj-repl
   (rf/reg-sub
-    :a-sub
-    (fn [db _] (:a db)))
+   :a-sub
+   (fn [db _] (:a db)))
 
   (rf/reg-sub
-    :b-sub
-    (fn [db _] (:b db)))
+   :b-sub
+   (fn [db _] (:b db)))
 
   (rf/reg-sub
-    :a-b-sub
-    :<- [:a-sub]
-    :<- [:b-sub]
-    (fn [[a b] _]
-      {:a a :b b}))
+   :a-b-sub
+   :<- [:a-sub]
+   :<- [:b-sub]
+   (fn [[a b] _]
+     {:a a :b b}))
 
   (let [test-sub (rf/subscribe [:a-b-sub])]
     (reset! rf/app-db {:a 1 :b 2})

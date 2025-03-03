@@ -80,7 +80,7 @@
     (throw (ex-info "Subscription does not exist in registry." {:sub sub}))))
 
 (deftype RfxAtom
-  [app-db listeners subscription-cache registry]
+         [app-db listeners subscription-cache registry]
   store/IStore
   (subscribe [this sub]
     (let [curr-cache    @subscription-cache
@@ -91,13 +91,13 @@
   (use-sub [this sub]
     #?(:cljs
        (react/useSyncExternalStore
-         (fn subscribe-to-sub* [listener]
-           (let [id (str (gensym "listener"))]
-             (vswap! listeners assoc id {:listener listener :sub sub})
-             (fn []
-               (vswap! listeners dissoc id))))
-         (fn get-sub-snapshot* []
-           (store/subscribe this sub)))
+        (fn subscribe-to-sub* [listener]
+          (let [id (str (gensym "listener"))]
+            (vswap! listeners assoc id {:listener listener :sub sub})
+            (fn []
+              (vswap! listeners dissoc id))))
+        (fn get-sub-snapshot* []
+          (store/subscribe this sub)))
 
        :clj (throw (ex-info "use-sub cannot be called from the JVM." {:sub sub}))))
 
@@ -124,11 +124,11 @@
 
   #?@(:cljs
       (cljs.core/IDeref
-        (-deref [_] @app-db))
+       (-deref [_] @app-db))
 
       :clj
       (clojure.lang.IDeref
-        (deref [_] @app-db))))
+       (deref [_] @app-db))))
 
 (defn store
   [registry initial-value]
