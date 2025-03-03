@@ -356,10 +356,10 @@
         [:li {:className "p-2 border mt-4"}
          [:div {} (str "Snapshot " (:id snapshot))
           [:div {:className "flex items-center gap-2 mt-2"}
-           [:button {:on-click  #(store/snapshot-reset! (:store app-context) (:db snapshot))
+           [:button {:on-click  #(store/next-state! (:store app-context) (:db snapshot))
                      :className rfx-secondary-button-class}
             "Restore"]
-           [:button {:on-click  #(store/snapshot-reset! (:store app-context) (:db snapshot))
+           [:button {:on-click  #(store/next-state! (:store app-context) (:db snapshot))
                      :className rfx-secondary-button-class}
             "Download"]]]])]]))
 

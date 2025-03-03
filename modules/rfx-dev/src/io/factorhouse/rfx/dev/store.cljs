@@ -28,9 +28,9 @@
     (snapshot [_]
       (store/snapshot store))
 
-    (snapshot-reset! [_ newval]
+    (next-state! [_ newval]
       (let [start  (js/performance.now)
-            newval (store/snapshot-reset! store newval)
+            newval (store/next-state! store newval)
             end    (js/performance.now)]
         (dev-dispatch [::db/increment-epoch (- end start)])
         newval))))
