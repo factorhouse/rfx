@@ -110,7 +110,6 @@
   (assoc coeffects sub-id (store/subscribe (::store coeffects) sub)))
 
 (reg-cofx ::subscribe cofx-subscribe)
-(reg-cofx :subscription cofx-subscribe)
 
 (defn reg-fx
   [fx-id f]

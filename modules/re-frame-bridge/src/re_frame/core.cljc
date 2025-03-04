@@ -49,3 +49,5 @@
       (store/next-state! app-db prev-state))))
 
 (def clear-subscription-cache! rfx/clear-subscription-cache!)
+
+(reg-cofx :subscription rfx/cofx-subscribe)
