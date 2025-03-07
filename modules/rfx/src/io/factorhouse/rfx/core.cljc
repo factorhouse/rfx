@@ -1,7 +1,6 @@
 (ns io.factorhouse.rfx.core
   "An implementation of re-frame built for modern React"
-  (:require [io.factorhouse.rfx.interceptor :refer [->interceptor]]
-            [io.factorhouse.rfx.loggers :as loggers]
+  (:require [io.factorhouse.rfx.loggers :as loggers]
             [io.factorhouse.rfx.queue :as queue]
             [io.factorhouse.rfx.stores.atom :as stores.atom]
             [io.factorhouse.rfx.store :as store]
@@ -26,6 +25,13 @@
   [cofx-id cofx-fn]
   (registry/reg-cofx global-registry cofx-id cofx-fn))
 
+(defn ->interceptor
+  [& {:keys [id comment before after]}]
+  (cond-> {:id     (or id :unnamed)
+           :before before
+           :after  after}
+          comment (assoc :comment comment)))
+
 (defn inject-cofx
   ([id]
    (->interceptor
@@ -33,7 +39,7 @@
     :before (fn coeffects-before
               [context]
               (if-let [handler (get-in (::registry context) [:cofx id])]
-                (handler context)
+                (update context :coeffects handler)
                 (update context ::errors (fnil conj []) {:type    :missing-cofx
                                                          :level   :warn
                                                          :message (str "No such cofx named " (pr-str id) ". Returning previous coeffects.")})))))
@@ -43,7 +49,7 @@
     :before (fn coeffects-before
               [context]
               (if-let [handler (get-in (::registry context) [:cofx id])]
-                (handler context value)
+                (update context :coeffects handler value)
                 (update context ::errors (fnil conj []) {:type    :missing-cofx
                                                          :level   :warn
                                                          :message (str "No such cofx named " (pr-str id) ". Returning previous coeffects.")}))))))
@@ -60,11 +66,11 @@
                             (if before
                               (before ctx)
                               ctx))
-                          {:db        curr-state
+                          {:coeffects {:db curr-state}
                            ::store    store
                            ::registry curr-registry}
                           interceptors)
-              result     (event-f ctx event)]
+              result     (event-f (:coeffects ctx) event)]
           (when-let [ctx-errors (::errors ctx)]
             (swap! errors into ctx-errors))
 
