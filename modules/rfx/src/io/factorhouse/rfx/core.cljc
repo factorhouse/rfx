@@ -30,7 +30,7 @@
   (cond-> {:id     (or id :unnamed)
            :before before
            :after  after}
-          comment (assoc :comment comment)))
+    comment (assoc :comment comment)))
 
 (defn inject-cofx
   ([id]
