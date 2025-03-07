@@ -16,7 +16,7 @@
 
 (rf/reg-event-fx
  :todos/remove
- [(rf/inject-cofx :subscription [:todos/view])]
+ [(rf/inject-cofx :io.factorhouse.rfx.core/subscribe [:todos/view])]
  (fn [{:keys [db todos/view]} [_ id]]
    (when (some #(= id (:id %)) view)
      {:db (update db :todos dissoc id)})))
