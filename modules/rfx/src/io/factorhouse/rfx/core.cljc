@@ -66,11 +66,12 @@
                             (if before
                               (before ctx)
                               ctx))
-                          {:coeffects {:db        curr-state
-                                       ::store    store}
+                          {:coeffects {:db     curr-state
+                                       :event  event
+                                       ::store store}
                            ::registry curr-registry}
                           interceptors)
-              result     (event-f (:coeffects ctx) event)]
+              result     (event-f (:coeffects ctx) (-> ctx :coeffects :event))]
           (when-let [ctx-errors (::errors ctx)]
             (swap! errors into ctx-errors))
 
