@@ -1,4 +1,4 @@
-(defproject io.factorhouse/rfx "2.0.0"
+(defproject io.factorhouse/rfx "0.1.12"
   :description "An implementation of re-frame built for modern React"
   :url "http://github.com/factorhouse/rfx"
   :license {:name         "Apache-2.0 License"
@@ -22,4 +22,7 @@
                                     "examples/rfx-todomvc/src"]}}
   :aliases {"fmt"    ["with-profile" "+smoke" "cljfmt" "check"]
             "fmtfix" ["with-profile" "+smoke" "cljfmt" "fix"]}
+  :repositories [["github" {:url      "https://maven.pkg.github.com/factorhouse/hsx"
+                            :username "private-token"
+                            :password :env/GITHUB_TOKEN}]]
   :repl-options {:init-ns io.factorhouse.rfx.core})
