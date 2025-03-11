@@ -14,10 +14,12 @@
          ts (js/Date.now)]
      (update db :todos assoc id {:value todo :ts ts :id id :completed? false}))))
 
-(rf/reg-event-db
+(rf/reg-event-fx
  :todos/remove
- (fn [db [_ id]]
-   (update db :todos dissoc id)))
+ [(rf/inject-cofx :io.factorhouse.rfx.core/subscribe [:todos/view])]
+ (fn [{:keys [db todos/view]} [_ id]]
+   (when (some #(= id (:id %)) view)
+     {:db (update db :todos dissoc id)})))
 
 (rf/reg-sub
  :todos/view
@@ -42,12 +44,11 @@
    (->> db :todos vals (sort-by :ts))))
 
 (defn todos-input []
-  (let [dispatch (rf/use-dispatch)]
-    [:input {:className   "p-4 border border-slate-300"
-             :placeholder "What needs to be done?"
-             :on-key-down (fn [e]
-                            (when (= "Enter" (.-key e))
-                              (dispatch [:todos/add (-> e .-target .-value)])))}]))
+  [:input {:className   "p-4 border border-slate-300"
+           :placeholder "What needs to be done?"
+           :on-key-down (fn [e]
+                          (when (= "Enter" (.-key e))
+                            (rf/dispatch [:todos/add (-> e .-target .-value)])))}])
 
 (defn view-1 []
   (let [todos (rf/subscribe [:todos/view1])]
@@ -65,7 +66,10 @@
      [:ul
       (for [item @todos]
         ^{:key (str "todo-" (:id item))}
-        [:div (:value item)])]]))
+        [:div (:value item)
+         [:button {:className "ml-4"
+                   :on-click  #(rf/dispatch [:todos/remove (:id item)])}
+          "Remove"]])]]))
 
 (defn hello-world []
   [:div {:className "p-4"}

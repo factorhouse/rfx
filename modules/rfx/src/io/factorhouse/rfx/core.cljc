@@ -25,32 +25,55 @@
   [cofx-id cofx-fn]
   (registry/reg-cofx global-registry cofx-id cofx-fn))
 
+(defn ->interceptor
+  [& {:keys [id comment before after]}]
+  (cond-> {:id     (or id :unnamed)
+           :before before
+           :after  after}
+    comment (assoc :comment comment)))
+
 (defn inject-cofx
   ([id]
-   {:id id :value nil})
+   (->interceptor
+    :id :coeffects
+    :before (fn coeffects-before
+              [context]
+              (if-let [handler (get-in (::registry context) [:cofx id])]
+                (update context :coeffects handler)
+                (update context ::errors (fnil conj []) {:type    :missing-cofx
+                                                         :level   :warn
+                                                         :message (str "No such cofx named " (pr-str id) ". Returning previous coeffects.")})))))
   ([id value]
-   {:id id :value value}))
+   (->interceptor
+    :id :coeffects
+    :before (fn coeffects-before
+              [context]
+              (if-let [handler (get-in (::registry context) [:cofx id])]
+                (update context :coeffects handler value)
+                (update context ::errors (fnil conj []) {:type    :missing-cofx
+                                                         :level   :warn
+                                                         :message (str "No such cofx named " (pr-str id) ". Returning previous coeffects.")}))))))
 
 (defn handler
   [registry store error-handler]
   (fn [event-queue [event-id & _args :as event]]
     (let [curr-registry @registry
           errors        (atom [])]
-      (if-let [{:keys [event-f coeffects]} (get-in curr-registry [:event event-id])]
+      (if-let [{:keys [event-f interceptors]} (get-in curr-registry [:event event-id])]
         (let [curr-state (store/snapshot store)
               ctx        (reduce
-                          (fn [ctx {:keys [id value]}]
-                            (if-let [cofx-fn (get-in curr-registry [:cofx id])]
-                              (cofx-fn ctx value)
-                              (do
-                                (swap! errors conj {:type    :missing-cofx
-                                                    :level   :warn
-                                                    :message (str "No such cofx named " (pr-str id) ". Returning previous coeffects.")})
-                                ctx)))
-                          {:db     curr-state
-                           ::store store}
-                          coeffects)
-              result     (event-f ctx event)]
+                          (fn [ctx {:keys [before]}]
+                            (if before
+                              (before ctx)
+                              ctx))
+                          {:coeffects {:db     curr-state
+                                       :event  event
+                                       ::store store}
+                           ::registry curr-registry}
+                          interceptors)
+              result     (event-f (:coeffects ctx) (-> ctx :coeffects :event))]
+          (when-let [ctx-errors (::errors ctx)]
+            (swap! errors into ctx-errors))
 
           (when-let [next-db (:db result)]
             (store/next-state! store next-db))

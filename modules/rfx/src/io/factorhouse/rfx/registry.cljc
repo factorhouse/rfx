@@ -14,8 +14,9 @@
   (swap! registry assoc-in [:fx fx-id] f))
 
 (defn reg-event-fx
-  [registry event-fx-id coeffects f]
-  (let [fx {:event-f f :coeffects coeffects}]
+  [registry event-fx-id interceptors f]
+  (let [fx {:event-f      f
+            :interceptors interceptors}]
     (swap! registry assoc-in [:event event-fx-id] fx)))
 
 (defn reg-event-db
