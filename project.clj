@@ -22,7 +22,7 @@
                                     "examples/rfx-todomvc/src"]}}
   :aliases {"fmt"    ["with-profile" "+smoke" "cljfmt" "check"]
             "fmtfix" ["with-profile" "+smoke" "cljfmt" "fix"]}
-  :repositories [["github" {:url      "https://maven.pkg.github.com/factorhouse/hsx"
+  :repositories [["github" {:url      "https://maven.pkg.github.com/factorhouse/rfx"
                             :username "private-token"
                             :password :env/GITHUB_TOKEN}]]
   :repl-options {:init-ns io.factorhouse.rfx.core})
