@@ -17,6 +17,7 @@
   ([sub-id]
    (rfx/reg-sub sub-id))
   ([sub-id & args]
+   ;; TODO: add better validation
    (let [signals (take-nth 2 (butlast (rest args)))
          sub-f   (last args)]
      (rfx/reg-sub sub-id signals sub-f))))
