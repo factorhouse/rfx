@@ -32,13 +32,13 @@
 
       (use-sub [this sub]
         (react/useSyncExternalStore
-          (fn subscribe-to-sub* [listener]
-            (let [id (str (gensym "listener"))]
-              (swap! listeners assoc id {:listener listener :sub sub})
-              (fn []
-                (swap! listeners dissoc id))))
-          (fn get-sub-snapshot* []
-            (store/subscribe this sub))))
+         (fn subscribe-to-sub* [listener]
+           (let [id (str (gensym "listener"))]
+             (swap! listeners assoc id {:listener listener :sub sub})
+             (fn []
+               (swap! listeners dissoc id))))
+         (fn get-sub-snapshot* []
+           (store/subscribe this sub))))
 
       (next-state! [_ tx-data]
         (d/transact! conn tx-data)

@@ -12,38 +12,38 @@
   (wrap-dev (rfx/init {:initial-value {:todos {}}})))
 
 (rfx/reg-event-db
-  :todos/add
-  (fn [db [_ todo]]
-    (let [id (str (gensym "todo"))
-          ts (js/Date.now)]
-      (update db :todos assoc id {:value todo :ts ts :id id :completed? false}))))
+ :todos/add
+ (fn [db [_ todo]]
+   (let [id (str (gensym "todo"))
+         ts (js/Date.now)]
+     (update db :todos assoc id {:value todo :ts ts :id id :completed? false}))))
 
 (rfx/reg-event-db
-  :todos/remove
-  (fn [db [_ id]]
-    (update db :todos dissoc id)))
+ :todos/remove
+ (fn [db [_ id]]
+   (update db :todos dissoc id)))
 
 (rfx/reg-sub
-  :todos/view
-  (fn [db _]
-    (->> db :todos vals (sort-by :ts))))
+ :todos/view
+ (fn [db _]
+   (->> db :todos vals (sort-by :ts))))
 
 (rfx/reg-sub
-  :todos/view1
-  [[:todos/view]]
-  (fn [view _]
-    (first view)))
+ :todos/view1
+ [[:todos/view]]
+ (fn [view _]
+   (first view)))
 
 (rfx/reg-sub
-  :todos/view2
-  [[:todos/view1]]
-  (fn [_ _]
-    :foo))
+ :todos/view2
+ [[:todos/view1]]
+ (fn [_ _]
+   :foo))
 
 (rfx/reg-sub
-  :todos/xyz
-  (fn [db _]
-    (->> db :todos vals (sort-by :ts))))
+ :todos/xyz
+ (fn [db _]
+   (->> db :todos vals (sort-by :ts))))
 
 (defn todos-input []
   (let [dispatch (rfx/use-dispatch)]
@@ -80,9 +80,9 @@
 
 (defn init []
   (.render
-    root
-    (hsx/create-element
-      [:> rfx/RfxContextProvider #js {"value" todo-context}
-       [hello-world]])))
+   root
+   (hsx/create-element
+    [:> rfx/RfxContextProvider #js {"value" todo-context}
+     [hello-world]])))
 
 (init)
