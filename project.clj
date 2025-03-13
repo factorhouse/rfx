@@ -12,7 +12,7 @@
                  "modules/rfx-dev/src"]
   :profiles {:smoke {:pedantic? :abort}
              :dev   {:dependencies [[thheller/shadow-cljs "2.28.20"]
-                                    [io.factorhouse/hsx "1.0.11"]
+                                    [io.factorhouse/hsx "0.1.14"]
                                     [org.babashka/sci "0.9.44"]
                                     [clj-kondo "2025.01.16"]
                                     [datascript "1.7.4"]]
@@ -22,7 +22,7 @@
                                     "examples/rfx-todomvc/src"]}}
   :aliases {"fmt"    ["with-profile" "+smoke" "cljfmt" "check"]
             "fmtfix" ["with-profile" "+smoke" "cljfmt" "fix"]}
-  :repositories [["github" {:url      "https://maven.pkg.github.com/factorhouse/rfx"
-                            :username "private-token"
-                            :password :env/GITHUB_TOKEN}]]
+  :repositories [["github-hsx" {:url      "https://maven.pkg.github.com/factorhouse/hsx"
+                                :username "private-token"
+                                :password :env/GITHUB_TOKEN}]]
   :repl-options {:init-ns io.factorhouse.rfx.core})
