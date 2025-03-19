@@ -49,12 +49,14 @@
 (reg/reg-event-db
  registry
  ::update-sub-filter
+ []
  (fn [db [_ k v]]
    (assoc-in db [:filters :sub k] v)))
 
 (reg/reg-event-db
  registry
  ::repl-result
+ []
  (fn [db [_ result]]
    (update db :repl-history conj result)))
 
@@ -75,6 +77,7 @@
 (reg/reg-event-db
  registry
  ::set-ui-theme
+ []
  (fn [db [_ next-theme]]
    (assoc db :theme next-theme)))
 
@@ -88,12 +91,14 @@
 (reg/reg-event-db
  registry
  ::open
+ []
  (fn [db [_ next-val]]
    (assoc db :open? next-val)))
 
 (reg/reg-event-db
  registry
  ::increment-epoch
+ []
  (fn [db [_ render-perf]]
    (update db :epoch conj render-perf)))
 
@@ -121,12 +126,14 @@
 (reg/reg-event-db
  registry
  ::mark-event
+ []
  (fn [db [_ event]]
    (update db :event-log conj event)))
 
 (reg/reg-event-db
  registry
  ::mark-sub
+ []
  (fn [db [_ id sub ts display-name]]
    (update-in db [:sub-log (first sub) :watchers]
               (fn [watchers]
@@ -141,6 +148,7 @@
 (reg/reg-event-db
  registry
  ::mark-sub-re-render
+ []
  (fn [db [_ id sub ts]]
    (update-in db [:sub-log (first sub) :watchers id]
               (fn [watcher]
@@ -151,6 +159,7 @@
 (reg/reg-event-db
  registry
  ::unmark-sub
+ []
  (fn [db [_ id sub]]
    (update-in db [:sub-log (first sub) :watchers]
               (fn [watchers]
@@ -187,6 +196,7 @@
 (reg/reg-event-db
  registry
  ::sub-force-re-render
+ []
  (fn [db [_ sub id]]
    (update-in db [(:sub-log first sub) :watchers id :force-re-render] inc)))
 
@@ -200,6 +210,7 @@
 (reg/reg-event-db
  registry
  ::snapshot
+ []
  (fn [db [_ snapshot]]
    (update db :snapshots conj snapshot)))
 
