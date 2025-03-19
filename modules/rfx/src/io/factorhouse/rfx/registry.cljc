@@ -20,8 +20,9 @@
     (swap! registry assoc-in [:event event-fx-id] fx)))
 
 (defn reg-event-db
-  [registry event-id event-f]
-  (let [event {:event-f (fn [{:keys [db]} event] {:db (event-f db event)})}]
+  [registry event-id interceptors event-f]
+  (let [event {:event-f      (fn [{:keys [db]} event] {:db (event-f db event)})
+               :interceptors interceptors}]
     (swap! registry assoc-in [:event event-id] event)))
 
 (defn clear-subscription-cache!

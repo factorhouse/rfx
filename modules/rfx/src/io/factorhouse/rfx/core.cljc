@@ -61,18 +61,23 @@
           errors        (atom [])]
       (if-let [{:keys [event-f interceptors]} (get-in curr-registry [:event event-id])]
         (let [curr-state (store/snapshot store)
-              ctx        (reduce
-                          (fn [ctx {:keys [before]}]
-                            (if before
-                              (before ctx)
-                              ctx))
+              ctx-before (reduce
+                          (fn [ctx {:keys [before] :as interceptor}]
+                            (let [next-ctx (if before
+                                             (before ctx)
+                                             ctx)]
+                              (-> next-ctx
+                                  (update :queue rest)
+                                  (update :stack conj interceptor))))
                           {:coeffects {:db     curr-state
                                        :event  event
                                        ::store store}
+                           :stack     []
+                           :queue     interceptors
                            ::registry curr-registry}
                           interceptors)
-              result     (event-f (:coeffects ctx) (-> ctx :coeffects :event))]
-          (when-let [ctx-errors (::errors ctx)]
+              result     (event-f (:coeffects ctx-before) (-> ctx-before :coeffects :event))]
+          (when-let [ctx-errors (::errors ctx-before)]
             (swap! errors into ctx-errors))
 
           (when-let [next-db (:db result)]
@@ -89,7 +94,22 @@
               (fx-fn fx-val)
               (swap! errors conj {:type    :missing-fx
                                   :level   :warn
-                                  :message (str "Cannot find fx named " (pr-str fx-id))}))))
+                                  :message (str "Cannot find fx named " (pr-str fx-id))})))
+
+          (when (seq interceptors)
+            (let [interceptors (reverse interceptors)
+                  ctx-after    (reduce
+                                (fn [ctx {:keys [after] :as interceptor}]
+                                  (let [next-ctx (if after
+                                                   (after ctx)
+                                                   ctx)]
+                                    (-> next-ctx
+                                        (update :queue rest)
+                                        (update :stack conj interceptor))))
+                                (assoc ctx-before :effects result)
+                                interceptors)]
+              (when-let [ctx-errors (::errors ctx-after)]
+                (swap! errors into ctx-errors)))))
 
         (swap! errors conj {:type    :missing-event
                             :level   :warn
@@ -129,8 +149,10 @@
    (registry/reg-event-fx global-registry event-fx-id coeffects f)))
 
 (defn reg-event-db
-  [event-id event-f]
-  (registry/reg-event-db global-registry event-id event-f))
+  ([event-id event-f]
+   (reg-event-db event-id [] event-f))
+  ([event-id interceptors event-f]
+   (registry/reg-event-db global-registry event-id interceptors event-f)))
 
 (defn clear-subscription-cache!
   []
