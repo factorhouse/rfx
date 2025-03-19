@@ -68,12 +68,9 @@
                                      :queue     interceptors
                                      :stack     []}]
                            (if-let [{:keys [before] :as interceptor} (first (:queue ctx))]
-                             (let [next-ctx (if before
-                                              (before ctx)
-                                              ctx)]
-                               (recur (-> next-ctx
-                                          (update :queue rest)
-                                          (update :stack conj interceptor))))
+                             (recur (-> (if before (before ctx) ctx)
+                                        (update :queue rest)
+                                        (update :stack conj interceptor)))
                              ctx))
               effects    (event-f (:coeffects ctx-before) (-> ctx-before :coeffects :event))]
           (when-let [ctx-errors (::errors ctx-before)]
@@ -101,12 +98,9 @@
                                         :queue     (reverse interceptors)
                                         :stack     []}]
                               (if-let [{:keys [after] :as interceptor} (first (:queue ctx))]
-                                (let [next-ctx (if after
-                                                 (after ctx)
-                                                 ctx)]
-                                  (recur (-> next-ctx
-                                             (update :queue rest)
-                                             (update :stack conj interceptor))))
+                                (recur (-> (if after (after ctx) ctx)
+                                           (update :queue rest)
+                                           (update :stack conj interceptor)))
                                 ctx))]
               (when-let [ctx-errors (::errors ctx-after)]
                 (swap! errors into ctx-errors)))))

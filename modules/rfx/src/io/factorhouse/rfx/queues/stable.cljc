@@ -1,7 +1,7 @@
 (ns io.factorhouse.rfx.queues.stable
   "This is the 'stable' implementation of an EventQueue.
 
-  Original implementation comes from re-frame:"
+  Original implementation comes from re-frame: https://github.com/day8/re-frame/blob/master/src/re_frame/router.cljc"
   (:require [io.factorhouse.rfx.queue :as queue]
             #?(:cljs [goog.async.nextTick])))
 
