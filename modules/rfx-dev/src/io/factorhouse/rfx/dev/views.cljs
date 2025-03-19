@@ -142,10 +142,9 @@
         "Inactive"]])))
 
 (defn send-to-repl-button
-  [sub-id]
+  [expr-string]
   (let [dispatch    (rfx/use-dispatch)
-        eval-string (use-sci)
-        expr-string (str "(subscribe " (pr-str [sub-id]) ")")]
+        eval-string (use-sci)]
     [:div
      [:button {:className rfx-secondary-button-class
                :on-click  #(dispatch [::db/repl-result {:expr-str expr-string
@@ -165,7 +164,9 @@
                :on-change #(dispatch [::db/update-sub-filter :show-inactive? (not checked?)])}]
       [:span {:className "text-sm text-gray-800 dark:text-gray-300"} "Show inactive?"]]]))
 
-(defn registry-list
+(defmulti registry-list identity)
+
+(defmethod registry-list :default
   [reg-id]
   (let [registry (use-registry reg-id)]
     [:div {:className rfx-content-class}
@@ -188,7 +189,34 @@
               (when (= :sub reg-id)
                 [is-sub-live id])]
 
-             [send-to-repl-button id]]])]
+             [send-to-repl-button (str "(subscribe " (pr-str [id]) ")")]]])]
+        [:div {:className "rounded rounded-md dark:bg-yellow-600 bg-yellow-100 p-4 mt-4 dark:border-gray-700 border-gray-300 border w-full"}
+         "You have no " (pr-str reg-id) " in your Rfx registry."])]]))
+
+(defmethod registry-list :sub
+  [reg-id]
+  (let [registry (use-registry reg-id)]
+    [:div {:className rfx-content-class}
+     (when (= :sub reg-id)
+       [registry-sub-form])
+     [:div {:className "flex items-center gap-4 w-full"}
+      (if (seq registry)
+        [:ul {:className "w-full"}
+         (for [[id val] registry]
+           ^{:key (str "registry-item-" id)}
+           [:li {:className "rounded rounded-md dark:bg-slate-500 p-4 mt-4 dark:border-gray-700 border-gray-300 border w-full"}
+            [:div {:className "flex items-center"}
+             [:div {:className "grow"}
+              [:h3 {:className "text-xl font-mono"}
+               (pr-str id)]
+
+              [:pre {:className "mt-2"}
+               (pr-str val)]
+
+              (when (= :sub reg-id)
+                [is-sub-live id])]
+
+             [send-to-repl-button (str "(subscribe " (pr-str [id]) ")")]]])]
         [:div {:className "rounded rounded-md dark:bg-yellow-600 bg-yellow-100 p-4 mt-4 dark:border-gray-700 border-gray-300 border w-full"}
          "You have no " (pr-str reg-id) " in your Rfx registry."])]]))
 
@@ -207,12 +235,16 @@
        "Cofx"]]]
     [:> TabPanels {:className "w-full h-full"}
      [:> TabPanel {:className "h-full"}
+      ^{:key "reg-sub"}
       [registry-list :sub]]
      [:> TabPanel {:className "h-full"}
+      ^{:key "reg-event-db"}
       [registry-list :event]]
      [:> TabPanel {:className "h-full"}
+      ^{:key "reg-event-fx"}
       [registry-list :fx]]
      [:> TabPanel {:className "h-full"}
+      ^{:key "reg-cofx"}
       [registry-list :cofx]]]]])
 
 (defn build-node
@@ -370,6 +402,30 @@
      [:p "Curent epoch " current-epoch]
      [:pre (pr-str stats)]]))
 
+(defn event-log []
+  (let [log (rfx/use-sub [::db/event-log])]
+    [:table {:className (util/class-names "mt-4" rfx-table-class)}
+     [:caption {:className "sr-only"}
+      "A table describing the event log."]
+     [:thead {:className rfx-table-header-class}
+      [:th {:className "px-3 py-2"} "Type"]
+      [:th {:className "px-3 py-2"} "Event"]
+      [:th {:className "px-3 py-2"} "Timestamp"]
+      [:th {:className "px-3 py-2"} "Actions"]]
+     [:tbody
+      (map-indexed
+       (fn [idx item]
+         ^{:key (str "event-" idx)}
+         [:tr {:className rfx-table-row-class}
+          [:td {:className "px-3 py-2 whitespace-nowrap"}
+           "dispatch"]
+          [:td {:className "px-3 py-2 whitespace-nowrap"}
+           [:pre (pr-str (:event item))]]
+          [:td {:className "px-3 py-2 whitespace-nowrap"} (:ts item)]
+          [:td {:className "px-3 py-2 whitespace-nowrap"}
+           [send-to-repl-button (str "(dispatch " (pr-str (:event item)) ")")]]])
+       log)]]))
+
 (defn rfx-slide []
   (let [theme    (rfx/use-sub [::db/ui-theme])
         open?    (rfx/use-sub [::db/open?])
@@ -413,6 +469,6 @@
            [:> TabPanel {:className "h-full"}
             [snapshots-view]]
            [:> TabPanel {:className "h-full"}
-            "Log"]
+            [event-log]]
            [:> TabPanel {:className "h-full"}
             [repl-view]]]]]]])))
