@@ -7,6 +7,12 @@ RFX is a modern, API-compatible drop-in replacement for [re-frame](https://githu
 
 It integrates seamlessly with vanilla React, popular wrapper libraries like [uix](https://github.com/pitch-io/uix) or even [Reagent](https://github.com/reagent-project/reagent).
 
+**Note:** Documentation is a work in progress!
+
+See also:
+
+* [HSX](https://github.com/factorhouse/hsx) - a ClojureScript library for writing React components using Hiccup syntax.
+
 ## License
 
 Distributed under the Apache 2.0 License.
