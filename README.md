@@ -1,5 +1,8 @@
 # Rfx
 
+[![test](https://github.com/factorhouse/rfx/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/factorhouse/rfx/actions/workflows/test.yml)
+[![Clojars Project](https://img.shields.io/clojars/v/io.factorhouse/rfx.svg)](https://clojars.org/io.factorhouse/rfx)
+
 Rfx is a modern, API-compatible drop-in replacement for [re-frame](https://github.com/day8/re-frame), designed for use with React 18+ and **no dependency on Reagent**. Its API is based on hooks.
 
 It integrates seamlessly with vanilla React, popular wrapper libraries like [uix](https://github.com/pitch-io/uix) or even [Reagent](https://github.com/reagent-project/reagent).
