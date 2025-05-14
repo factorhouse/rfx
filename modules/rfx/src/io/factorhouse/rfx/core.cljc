@@ -1,7 +1,6 @@
 (ns io.factorhouse.rfx.core
   "An implementation of re-frame built for modern React"
-  (:require [io.factorhouse.rfx.loggers :as loggers]
-            [io.factorhouse.rfx.queue :as queue]
+  (:require [io.factorhouse.rfx.queue :as queue]
             [io.factorhouse.rfx.stores.atom :as stores.atom]
             [io.factorhouse.rfx.store :as store]
             [io.factorhouse.rfx.queues.stable :as stable-queue]
@@ -12,8 +11,10 @@
   (atom {}))
 
 (defn log-and-continue-error-handler
-  [errors]
-  (prn "Errors => " (pr-str errors)))
+  [ctx]
+  #?(:cljs (js/console.error "rfx:" ctx)
+     :clj  (let [log (requiring-resolve 'clojure.tools.logging/error)]
+             (log "rfx: %s" ctx))))
 
 (defn dispatch
   [{:keys [queue]} event]

@@ -6,7 +6,7 @@
             :distribution :repo
             :comments     "same as Kafka"}
   :dependencies [[org.clojure/clojure "1.12.0" :scope "provided"]
-                 [org.clojure/tools.logging "1.3.0"]]
+                 [org.clojure/tools.logging "1.3.0" :scope "provided"]]
   :source-paths ["modules/rfx/src"
                  "modules/re-frame-bridge/src"
                  "modules/rfx-dev/src"]
