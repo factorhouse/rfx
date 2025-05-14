@@ -49,7 +49,7 @@ Check out the [rfx-todo-mvc](examples/rfx-todomvc) example for reference.
 
 ## Contexts
 
-RFX uses [React Context](https://react.dev/learn/passing-data-deeply-with-context) as the means for components to access RFX state (subscriptions, dispatching events, accessing the state store, etc.).
+RFX uses [React Context](https://react.dev/learn/passing-data-deeply-with-context) as the means for components to access the RFX instance.
 
 ### Advantages over re-frame
 
@@ -80,9 +80,7 @@ Wrap your root component with an `RFXContextProvider` to get started:
  [my-root-component]]
 ```
 
-### Core hooks
-
-RFX exposes two hooks to interface with application state:
+### Hooks API
 
 | Hook | Purpose |
 |------|---------|
@@ -92,6 +90,8 @@ RFX exposes two hooks to interface with application state:
 Both of these can be used within components like so:
 
 ```clojure
+;; (require '[io.factorhouse.rfx.core :as rfx])
+
 (rfx/reg-sub :counter (fn [db _] (:counter db)))
 
 (rfx/reg-event-db :counter/increment (fn [db _] (update db :counter inc)))
@@ -124,7 +124,7 @@ This context isolation allows components to be developed and tested independentl
                                       (dispatch [:input/context :kjq "foo"]))}}}))
 ```
 
-In this example, each story operates within its own isolated context, allowing components to be tested independently without affecting global application state. This approach makes it easier to develop, test, and iterate on individual components when using component-driven development tools.
+In this example, each story operates within its own isolated context, allowing components to be tested independently. This approach makes it easier to develop, test, and iterate on individual components when using component-driven development tools.
 
 ### Interacting with RFX outside of React
 
@@ -154,7 +154,7 @@ This adds little overhead, as it's typical to initialize all your services withi
     (render-my-react rfx)))
 ```
 
-You can get the current snapshot of a subscription outside of a React context by calling `io.factorhouse.rfx.core/snapshot-sub`:
+You can get the current value of a subscription outside of a React context by calling `io.factorhouse.rfx.core/snapshot-sub`:
 
 ```clojure 
 (defn codemirror-autocomplete-suggestions 
@@ -186,17 +186,17 @@ Calling `io.factorhouse.rfx.core/init` returns a new RFX instance. So far we hav
 
 ### All subscriptions are React Hooks
 
-Even the compatible `re-frame.core/subscribe` function returns a subscription hook wrapped in a [Clojure delay](https://clojuredocs.org/clojure.core/delay).
+Even the `re-frame.core/subscribe` function returns a subscription hook wrapped in a [Clojure delay](https://clojuredocs.org/clojure.core/delay).
 
-This means you can use RFX from any modern React wrapper (like HSX or Uix) or even plain JavaScript.
+This means you can use RFX from any React wrapper (like HSX or Uix) or even plain JavaScript.
 
-**Note:** All the caveats of [React hooks](https://react.dev/reference/rules/rules-of-hooks) also apply to RFX subscriptions! This is also true for the re-frame-bridge compatibility layer.
+**Note:** All the caveats of [React hooks](https://react.dev/reference/rules/rules-of-hooks) also apply to RFX subscriptions!
 
-Reagent users will need to wrap components in the `:f>` shorthand to indicate they are inside a functional component:
+Reagent users will need to wrap components in the `:f>` function component shorthand:
 
 ```clojure
 (defn rfx-interop []
-  (let [val @(rf/subscribe [:some-value])]
+  (let [val @(re-frame.core/subscribe [:some-value])]
     [:div "The result is " val]))
 
 (defn my-reagent-comp [] 
