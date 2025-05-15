@@ -19,31 +19,29 @@ If you want to read more about the engineering challenge of moving a 120k LOC Re
 
 ## Getting started
 
-### Option 1: `re-frame.core` API
+### Option 1: `re-frame.core` API (for migrating codebases)
 
 ```clojure 
 ;; deps.edn
 {:deps {io.factorhouse/re-frame-bridge {:mvn/version "0.1.13"}}}
 ```
 
-The `io.factorhouse/re-frame-bridge` library is a drop-in replacement for [re-frame](https://github.com/day-8/re-frame) allowing you to interface with RFX through a familiar `re-frame.core` namespace.
+The `io.factorhouse/re-frame-bridge` library is a drop-in replacement for [re-frame](https://github.com/day-8/re-frame) allowing you use RFX via a `re-frame.core` shim namespace.
 
-This library is primarily intended to be used by existing codebases who are seeking to migrate off Reagent/re-frame.
+This library is intended to be used by existing codebases who are seeking to migrate off Reagent/re-frame.
 
-A compatibility layer has been written for the `re-frame.core` namespace and all public functions have been implemented.
-
-As this is a compatibility layer, advanced features of RFX (such as React Contexts and hooks) cannot be used as ergonomically from code using the bridging library.
+As this is a compatibility layer, advanced features of RFX (such as React Contexts and hooks) cannot be used as ergonomically.
 
 Check out the [re-frame-bridge-todo-mvc](examples/re-frame-bridge-todomvc) example for reference.
 
-### Option 2: `io.factorhouse.rfx.core` API
+### Option 2: `io.factorhouse.rfx.core` API (recommended)
 
 ```clojure 
 ;; deps.edn
 {:deps {io.factorhouse/rfx {:mvn/version "0.1.13"}}}
 ```
 
-The `io.factorhouse/rfx` library presents a re-frame like architecture built on modern React foundations. Consumers of this library interact with the API through the `io.factorhouse.rfx.core` namespace.
+Consumers of RFX interact with the API through the `io.factorhouse.rfx.core` namespace.
 
 Check out the [rfx-todo-mvc](examples/rfx-todomvc) example for reference.
 
