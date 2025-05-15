@@ -173,7 +173,7 @@ You can access the current value of the application db by calling `io.factorhous
 
 Calling `io.factorhouse.rfx.core/init` returns a new RFX instance. So far we have only seen how to use this instance, but not how to configure it.
 
-`rfx/init` accepts the following keys:
+`rfx/init` accepts a map with the following keys:
 
 | Key | Required | Description |
 |-----|:--------:|-------------|
