@@ -31,7 +31,7 @@ The `io.factorhouse/re-frame-bridge` library is a drop-in replacement for [re-fr
 
 This library is intended to be used by existing codebases who are seeking to migrate off Reagent/re-frame.
 
-As this is a compatibility layer, advanced features of RFX (such as React Contexts and hooks) cannot be used as ergonomically.
+As this is a compatibility layer, advanced features of RFX (such as contexts and hooks) cannot be used as ergonomically.
 
 Check out the [re-frame-bridge-todo-mvc](examples/re-frame-bridge-todomvc) example for reference.
 
