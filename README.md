@@ -88,7 +88,7 @@ Wrap your root component with an `RFXContextProvider` to get started:
 | `use-dispatch-sync` | Dipsatch events immediately rather than queueing |
 | `use-rfx-context` | Access to the RFX instance (store, registry, etc) |
 
-Both of these can be used within components like so:
+An example of API use within a [HSX](https://github.com/factorhouse/hsx) component:
 
 ```clojure
 ;; (require '[io.factorhouse.rfx.core :as rfx])
@@ -177,7 +177,7 @@ Calling `io.factorhouse.rfx.core/init` returns a new RFX instance. So far we hav
 
 `rfx/init` accepts a map with the following keys:
 
-| Key | Required | Description |
+| Key | Required? | Description |
 |-----|:--------:|-------------|
 | `:queue` | ❌ | The event queue used to process messages. Default queue is the same as re-frame's (uses goog.async.nextTick to process events) |
 | `:error-handler` | ❌ | Error handler (default ErrorHandler is the same as re-frame's - something that logs and continues) |
