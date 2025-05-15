@@ -99,7 +99,7 @@
         (fn get-sub-snapshot* []
           (store/subscribe this sub)))
 
-       :clj (throw (ex-info "use-sub cannot be called from the JVM." {:sub sub}))))
+       :clj (throw (ex-info "use-sub cannot be called from the JVM." {:sub sub :store this}))))
 
   (snapshot [_] @app-db)
 

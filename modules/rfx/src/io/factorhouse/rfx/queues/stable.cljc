@@ -32,7 +32,7 @@
 
   ;; register a callback function which will be called after each event is processed
   (add-post-event-callback [_ id callback-fn]
-    (if (contains? post-event-callback-fns id)
+    (when (contains? post-event-callback-fns id)
       (error-handler {:errors [{:level   :info
                                 :message (str "rfx: overwriting existing post event call back with id:" id)}]}))
     (->> (assoc post-event-callback-fns id callback-fn)
