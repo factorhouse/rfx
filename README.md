@@ -82,9 +82,9 @@ Wrap your root component with an `RFXContextProvider` to get started:
 
 ### Hooks API
 
-| Hook | Purpose |
-|------|---------|
-| `use-sub` | Subscribe to data from the state store |
+| Hook | Description                              |
+|------|------------------------------------------|
+| `use-sub` | Subscribe to data from the state store   |
 | `use-dispatch` | Dispatch events to trigger state changes |
 
 Both of these can be used within components like so:
