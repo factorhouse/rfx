@@ -23,10 +23,6 @@ jobs:
         run: echo -n "$GPG_SIGNING_KEY" | base64 --decode | gpg --import
         env:
           GPG_SIGNING_KEY: ${{ secrets.GH_PACKAGES_GPG_SIGNING_KEY }}
-      - name: Create Clojars credentials file
-        run: |
-          mkdir -p ~/.lein
-          echo "{:auth {:repository-auth {#\"clojars\" {:username \"${{ secrets.CLOJARS_USERNAME }}\" :password \"${{ secrets.CLOJARS_PASSWORD }}\" }}}}" > ~/.lein/profiles.clj
       - name: Publish rfx
         run: cd modules/rfx && lein deploy clojars
         env:
