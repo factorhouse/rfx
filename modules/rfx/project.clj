@@ -7,4 +7,7 @@
             :comments     "same as Kafka"}
   :dependencies [[org.clojure/clojure "1.12.0" :scope "provided"]
                  [org.clojure/tools.logging "1.3.0" :scope "provided"]]
-  :source-paths ["src"])
+  :source-paths ["src"]
+  :deploy-repositories [["clojars" {:url "https://repo.clojars.org"
+                                    :username :env/CLOJARS_USERNAME
+                                    :password :env/CLOJARS_PASSWORD}]])
