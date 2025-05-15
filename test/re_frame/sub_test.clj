@@ -1,6 +1,7 @@
 (ns re-frame.sub-test
   "Adapted from: https://github.com/day8/re-frame/blob/master/test/re_frame/subs_test.cljs"
-  (:require [re-frame.core :as rf]
+  (:require [io.factorhouse.rfx.store :as store]
+            [re-frame.core :as rf]
             [clojure.test :refer :all]))
 
 (defn fixture-re-frame
@@ -28,7 +29,7 @@
      {:a a :b b}))
 
   (let [test-sub (rf/subscribe [:a-b-sub])]
-    (reset! rf/app-db {:a 1 :b 2})
+    (store/next-state! rf/app-db {:a 1 :b 2})
     (is (= {:a 1 :b 2} @test-sub))
-    (reset! rf/app-db {:a 1 :b 3})
+    (store/next-state! rf/app-db {:a 1 :b 3})
     (is (= {:a 1 :b 3} @test-sub))))
