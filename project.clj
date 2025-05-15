@@ -12,7 +12,7 @@
                  "modules/rfx-dev/src"]
   :profiles {:smoke {:pedantic? :abort}
              :dev   {:dependencies [[thheller/shadow-cljs "2.28.20"]
-                                    [io.factorhouse/hsx "0.1.14"]
+                                    [io.factorhouse/hsx "0.1.23"]
                                     [org.babashka/sci "0.9.44"]
                                     [clj-kondo "2025.01.16"]
                                     [datascript "1.7.4"]]
