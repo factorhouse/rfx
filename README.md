@@ -176,11 +176,13 @@ Calling `io.factorhouse.rfx.core/init` returns a new RFX instance. So far we hav
 
 `rfx/init` accepts the following keys:
 
-* `:queue` - (optional) The event queue used to process messages. Default queue is the same as re-frame's (uses `goog.async.nextTick` to process events)
-* `:error-handler` - (optional) Error handler (default ErrorHandler is the same as re-frame's - something that logs and continues)
-* `:store` - (optional) The store used to house your application's state. Default store is backed by a Clojure atom.
-* `:initial-value` - (optional) The initial value of the store. Default is `{}`.
-* `:registry` - (optional) The event+subscription registry the RFX instance will use. Defaults to the global registry.
+| Key | Required | Description |
+|-----|:--------:|-------------|
+| `:queue` | ❌ | The event queue used to process messages. Default queue is the same as re-frame's (uses goog.async.nextTick to process events) |
+| `:error-handler` | ❌ | Error handler (default ErrorHandler is the same as re-frame's - something that logs and continues) |
+| `:store` | ❌ | The store used to house your application's state. Default store is backed by a Clojure atom. |
+| `:initial-value` | ❌ | The initial value of the store. Default is `{}`. |
+| `:registry` | ❌ | The event+subscription registry the RFX instance will use. Defaults to the global registry. |
 
 ## Differences from re-frame
 
