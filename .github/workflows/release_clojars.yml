@@ -1,4 +1,4 @@
-name: publish package
+name: release clojars
 # Manually trigger
 on:
   workflow_dispatch:
