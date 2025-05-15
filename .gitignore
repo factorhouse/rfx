@@ -16,3 +16,4 @@ pom.xml.asc
 node_modules/
 public/js/
 *.iml
+.DS_Store

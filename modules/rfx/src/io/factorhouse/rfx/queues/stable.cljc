@@ -32,16 +32,16 @@
 
   ;; register a callback function which will be called after each event is processed
   (add-post-event-callback [_ id callback-fn]
-    (if (contains? post-event-callback-fns id)
-      (error-handler [{:level   :info
-                       :message (str "rfx: overwriting existing post event call back with id:" id)}]))
+    (when (contains? post-event-callback-fns id)
+      (error-handler {:errors [{:level   :info
+                                :message (str "rfx: overwriting existing post event call back with id:" id)}]}))
     (->> (assoc post-event-callback-fns id callback-fn)
          (set! post-event-callback-fns)))
 
   (remove-post-event-callback [_ id]
     (if-not (contains? post-event-callback-fns id)
-      (error-handler [{:level   :warn
-                       :message (str "rfx: could not remove post event call back with id:" id)}])
+      (error-handler {:errors [{:level   :warn
+                                :message (str "rfx: could not remove post event call back with id:" id)}]})
       (->> (dissoc post-event-callback-fns id)
            (set! post-event-callback-fns))))
 
