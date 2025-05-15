@@ -85,6 +85,8 @@ Wrap your root component with an `RFXContextProvider` to get started:
 |------|------------------------------------------|
 | `use-sub` | Subscribe to data from the state store   |
 | `use-dispatch` | Dispatch events to trigger state changes |
+| `use-dispatch-sync` | Dipsatch events immediately rather than queueing |
+| `use-rfx-context` | Access to the RFX instance (store, registry, etc) |
 
 Both of these can be used within components like so:
 
