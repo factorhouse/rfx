@@ -151,9 +151,9 @@
 
 (defn clear-subscription-cache!
   ([]
-    (registry/clear-subscription-cache! global-registry))
+   (registry/clear-subscription-cache! global-registry))
   ([{:keys [registry]}]
-    (registry/clear-subscription-cache! registry)))
+   (registry/clear-subscription-cache! registry)))
 
 (defn snapshot-sub
   [{:keys [store]} sub]
