@@ -53,14 +53,14 @@ RFX uses [React Context](https://react.dev/learn/passing-data-deeply-with-contex
 
 Building on top of React contexts offers several advantages compared to re-frame's global state approach:
 
-- **Component isolation**: Each component can operate within its own RFX context
+- **Component isolation**: Each component can operate within its own instance of RFX
 - **Improved testability**: Components can be tested with specific state configurations
 - **Better developer experience**: More natural integration with React's component model
 - **Tool compatibility**: Easier integration with tools like Storybook
 
 ### Basic setup
 
-The `io.factorhouse.rfx.core/RFXContextProvider` provides the RFX context to its children.
+The `io.factorhouse.rfx.core/RFXContextProvider` provides an RFX instance to its children.
 
 Wrap your root component with an `RFXContextProvider` to get started:
 
