@@ -187,7 +187,7 @@ Calling `io.factorhouse.rfx.core/init` returns a new RFX instance. So far we hav
 
 ### All subscriptions are React Hooks
 
-Even the `re-frame.core/subscribe` function returns a subscription hook wrapped in a [Clojure delay](https://clojuredocs.org/clojure.core/delay).
+Even the `re-frame.core/subscribe` shim function returns a subscription hook wrapped in a [Clojure delay](https://clojuredocs.org/clojure.core/delay).
 
 This means you can use RFX from any React wrapper (like HSX or Uix) or even plain JavaScript.
 
