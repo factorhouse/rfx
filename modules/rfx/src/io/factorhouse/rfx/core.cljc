@@ -115,8 +115,8 @@
                         :origin event})))))
 
 (defn dispatch-sync
-  [{:keys [store error-handler queue]} event]
-  (let [handler-f (handler global-registry store error-handler)]
+  [{:keys [store error-handler queue registry]} event]
+  (let [handler-f (handler registry store error-handler)]
     (handler-f queue event)))
 
 (defn reg-sub
