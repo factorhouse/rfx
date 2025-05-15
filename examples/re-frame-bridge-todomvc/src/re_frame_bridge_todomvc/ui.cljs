@@ -28,13 +28,13 @@
 
 (rf/reg-sub
  :todos/view1
- [[:todos/view]]
+ :<- [:todos/view]
  (fn [view _]
    (first view)))
 
 (rf/reg-sub
  :todos/view2
- [[:todos/view1]]
+ :<- [:todos/view1]
  (fn [_ _]
    :foo))
 
