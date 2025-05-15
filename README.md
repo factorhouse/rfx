@@ -43,7 +43,7 @@ Check out the [re-frame-bridge-todo-mvc](examples/re-frame-bridge-todomvc) examp
 {:deps {io.factorhouse/rfx {:mvn/version "0.1.13"}}}
 ```
 
-The `io.factorhouse/rfx` library presents a re-frame like architecture built on modern React foundations. Consumers of this library interface with the API primarily through the `io.factorhouse.rfx.core` namespace.
+The `io.factorhouse/rfx` library presents a re-frame like architecture built on modern React foundations. Consumers of this library interact with the API through the `io.factorhouse.rfx.core` namespace.
 
 Check out the [rfx-todo-mvc](examples/rfx-todomvc) example for reference.
 
