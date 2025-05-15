@@ -20,7 +20,8 @@
                      :source-paths ["examples/datascript/src"
                                     "examples/re-frame-bridge-todomvc/src"
                                     "examples/rfx-todomvc/src"]}}
-  :aliases {"fmt"    ["with-profile" "+smoke" "cljfmt" "check"]
+  :aliases {"kondo"  ["with-profile" "+smoke" "run" "-m" "clj-kondo.main" "--lint" "src" "test/cljs"]
+            "fmt"    ["with-profile" "+smoke" "cljfmt" "check"]
             "fmtfix" ["with-profile" "+smoke" "cljfmt" "fix"]}
   :repositories [["github" {:url      "https://maven.pkg.github.com/factorhouse/rfx"
                             :username "private-token"
