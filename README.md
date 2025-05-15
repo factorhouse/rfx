@@ -26,7 +26,7 @@ If you want to read more about the engineering challenge of moving a 120k LOC Re
 {:deps {io.factorhouse/re-frame-bridge {:mvn/version "0.1.13"}}}
 ```
 
-The `io.factorhouse/re-frame-bridge` library is a drop-in replacement for [re-frame](https://github.com/day-8/re-frame) allowing you use RFX via a `re-frame.core` shim namespace.
+The `io.factorhouse/re-frame-bridge` library is a drop-in replacement for [re-frame](https://github.com/day-8/re-frame) allowing RFX use via a `re-frame.core` shim namespace.
 
 This library is intended to be used by existing codebases who are seeking to migrate off Reagent/re-frame.
 
