@@ -16,7 +16,7 @@ React 19 introduced significant updates to React's rendering pipeline, which are
 
 At Factor House, our products require modern React API features without the technical debt of Reagent.
 
-If you want to read more about the engineering challenge of moving a 120k LOC Reagent codebase to React 19 read [this blog post](https://factorhouse.io/articles/evolving-beyond-reagent/).
+If you want to read more about the engineering challenge of moving a 120k LOC Reagent codebase to React 19 read [this blog post](https://factorhouse.io/blog/articles/beyond-reagent-with-hsx-and-rfx/).
 
 ## Getting started
 
