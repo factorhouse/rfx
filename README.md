@@ -61,21 +61,21 @@ Building on top of React contexts offers several advantages compared to re-frame
 
 ### Basic setup
 
-The `io.factorhouse.rfx.core/RFXContextProvider` provides an RFX instance to its children.
+The `io.factorhouse.rfx.core/RfxContextProvider` provides an RFX instance to its children.
 
-Wrap your root component with an `RFXContextProvider` to get started:
+Wrap your root component with an `RfxContextProvider` to get started:
 
 ```clojure
 ;; (:require [io.factorhouse.rfx.core :as rfx])
 
 ;; Option 1: Use global application state (like re-frame)
-;; Wrapping your root component with no explicit RFXContextProvider uses the global RFX instance:
-[my-root-component] ;; Equivalent to [:> rfx/RFXContextProvider #js {} [my-root-component]]
+;; Wrapping your root component with no explicit RfxContextProvider uses the global RFX instance:
+[my-root-component] ;; Equivalent to [:> rfx/RfxContextProvider #js {} [my-root-component]]
 
 ;; Option 2: Initialize your own scoped context
 (defonce custom-rfx-ctx (rfx/init {:initial-value {:foo :bar}}))
 
-[:> rfx/RFXContextProvider #js {"value" custom-rfx-ctx}
+[:> rfx/RfxContextProvider #js {"value" custom-rfx-ctx}
  [my-root-component]]
 ```
 
@@ -106,7 +106,7 @@ An example of API use within a [HSX](https://github.com/factorhouse/hsx) compone
 
 ### Context scoping
 
-The parent `RFXContextProvider` determines:
+The parent `RfxContextProvider` determines:
 
 1. Which store `use-sub` will subscribe to
 2. Which event queue `dispatch` will send events to
@@ -118,7 +118,7 @@ This context isolation allows components to be developed and tested independentl
 ```clojure
 (defmethod storybook/story "Kpow/Sampler/KJQFilter" [_]
   (let [{:keys [dispatch] :as ctx} (rfx/init {})]
-    {:component [:> rfx/RFXContextProvider #js {"value" ctx} [kjq/editor "kjq-filter-label"]]
+    {:component [:> rfx/RfxContextProvider #js {"value" ctx} [kjq/editor "kjq-filter-label"]]
      :stories   {:Filter     {}
                  :ValidInput {:play (fn [_]
                                       (dispatch [:input/context :kjq "foo"])
