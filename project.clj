@@ -11,7 +11,7 @@
                  "modules/re-frame-bridge/src"
                  "modules/rfx-dev/src"]
   :profiles {:smoke {:pedantic? :abort}
-             :dev   {:dependencies [[thheller/shadow-cljs "2.28.20" :exclusions [nrepl]]
+             :dev   {:dependencies [[thheller/shadow-cljs "3.0.6" :exclusions [nrepl]]
                                     [io.factorhouse/hsx "0.1.23"]
                                     [org.babashka/sci "0.9.44"]
                                     [clj-kondo "2025.01.16" :exclusions [com.cognitect/transit-java javax.xml.bind/jaxb-api com.cognitect/transit-clj]]
