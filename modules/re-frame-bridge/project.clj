@@ -1,4 +1,4 @@
-(defproject io.factorhouse/re-frame-bridge "0.1.13"
+(defproject io.factorhouse/re-frame-bridge "0.1.14"
   :description "An implementation of re-frame built for modern React (compatibility api)"
   :url "http://github.com/factorhouse/rfx"
   :license {:name         "Apache-2.0 License"
@@ -10,4 +10,4 @@
   :source-paths ["src"]
   :deploy-repositories [["clojars" {:url "https://repo.clojars.org"
                                     :username :env/CLOJARS_USERNAME
-                                    :password :env/CLOJARS_PASSWORD}]])            
+                                    :password :env/CLOJARS_PASSWORD}]])
