@@ -24,7 +24,9 @@
 
 (def reg-event-db rfx/reg-event-db)
 (def reg-event-fx rfx/reg-event-fx)
-(def reg-fx rfx/reg-fx)
+(defn reg-fx [fx-id fx-fn]
+  (rfx/reg-fx fx-id (fn [_ val]
+                      (fx-fn val))))
 (def reg-cofx rfx/reg-cofx)
 (def inject-cofx rfx/inject-cofx)
 
