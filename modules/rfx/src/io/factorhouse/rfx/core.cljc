@@ -88,7 +88,7 @@
             (doseq [[fx-id fx-val] (dissoc effects :db :dispatch :dispatch-n)
                     :let [ctx (assoc ctx :queue event-queue
                                      :dispatch (fn [event] (queue/push event-queue event))
-                                     :dispatch-sync (fn [event] (handler* event)))]]
+                                     :dispatch-sync (fn [event] (handler* event-queue event)))]]
               (if-let [fx-fn (get-in curr-registry [:fx fx-id])]
                 (fx-fn ctx fx-val)
                 (swap! errors conj {:type    :missing-fx
