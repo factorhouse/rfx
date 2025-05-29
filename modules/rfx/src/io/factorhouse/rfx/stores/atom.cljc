@@ -82,6 +82,10 @@
 (deftype RfxAtom
          [app-db listeners subscription-cache registry]
   store/IStore
+  (clear-subscription-cache! [_]
+    (reset! subscription-cache {})
+    true)
+
   (subscribe [this sub]
     (let [curr-cache    @subscription-cache
           curr-db       @app-db

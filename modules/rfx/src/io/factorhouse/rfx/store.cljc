@@ -13,4 +13,6 @@
   (next-state! [_ inputs]
     "Transitions the store to its next state based on some inputs.")
   (snapshot [this]
-    "Returns the current internal state of the store for inspection or debugging purposes. Intended to be called outside a React context."))
+    "Returns the current internal state of the store for inspection or debugging purposes. Intended to be called outside a React context.")
+  (clear-subscription-cache! [this]
+    "Clears the subscription cache. Useful for hot-reloading, etc."))

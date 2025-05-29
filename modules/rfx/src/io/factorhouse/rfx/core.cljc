@@ -152,10 +152,8 @@
    (registry/reg-event-db global-registry event-id interceptors event-f)))
 
 (defn clear-subscription-cache!
-  ([]
-   (registry/clear-subscription-cache! global-registry))
-  ([{:keys [registry]}]
-   (registry/clear-subscription-cache! registry)))
+  [{:keys [store]}]
+  (store/clear-subscription-cache! store))
 
 (defn snapshot-sub
   [{:keys [store]} sub]
