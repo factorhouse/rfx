@@ -1,4 +1,4 @@
-(defproject io.factorhouse/rfx "0.1.15"
+(defproject io.factorhouse/rfx "0.1.16"
   :description "An implementation of re-frame built for modern React"
   :url "http://github.com/factorhouse/rfx"
   :license {:name         "Apache-2.0 License"
