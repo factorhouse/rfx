@@ -195,20 +195,23 @@ This means you can use RFX from any React wrapper (like HSX or Uix) or even plai
 
 **Note:** All the caveats of [React hooks](https://react.dev/reference/rules/rules-of-hooks) also apply to RFX subscriptions!
 
-Reagent users will need to wrap components in the `:f>` function component shorthand:
-
-```clojure
-(defn rfx-interop []
-  (let [val @(re-frame.core/subscribe [:some-value])]
-    [:div "The result is " val]))
-
-(defn my-reagent-comp [] 
-  [:f> rfx-interop])
-```
-
 ### `^:flush-dom` annotations
 
 `^:flush-dom` metadata is not supported like in re-frame.
+
+### reg-fx
+
+- When using `re-frame-bridge` the `reg-fx` fn call is identical to re-frame (single-arity)
+- Using `io.factorhouse.rfx.core/reg-fx` takes two arguments: `[rfx-instance value]`:
+
+```clojure
+(require '[io.factorhouse.rfx.core :as rfx])
+
+(rfx/reg-fx ::some-fx
+  (fn [rfx value]
+    (let [curr-db (rfx/snapshot rfx)]
+      (-> curr-db :some-f value))))
+```
 
 ## Learning the re-frame architecture
 
