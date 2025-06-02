@@ -83,7 +83,7 @@
          [app-db listeners subscription-cache registry]
   store/IStore
   (clear-subscription-cache! [_]
-    (reset! subscription-cache {})
+    (vreset! subscription-cache {})
     (doseq [{:keys [listener]} (vals @listeners)]
       (listener))
     true)

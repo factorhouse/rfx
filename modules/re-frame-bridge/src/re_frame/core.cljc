@@ -51,4 +51,5 @@
     (fn []
       (store/next-state! app-db prev-state))))
 
-(def clear-subscription-cache! rfx/clear-subscription-cache!)
+(defn clear-subscription-cache! []
+  (rfx/clear-subscription-cache! rfx/global-context))
