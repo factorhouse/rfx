@@ -24,7 +24,7 @@ If you want to read more about the engineering challenge of moving a 120k LOC Re
 
 ```clojure 
 ;; deps.edn
-{:deps {io.factorhouse/re-frame-bridge {:mvn/version "0.1.13"}}}
+{:deps {io.factorhouse/re-frame-bridge {:mvn/version "0.1.16"}}}
 ```
 
 The `io.factorhouse/re-frame-bridge` library is a drop-in replacement for [re-frame](https://github.com/day-8/re-frame) allowing RFX use via a `re-frame.core` shim namespace.
@@ -39,7 +39,7 @@ Check out the [re-frame-bridge-todo-mvc](examples/re-frame-bridge-todomvc) examp
 
 ```clojure 
 ;; deps.edn
-{:deps {io.factorhouse/rfx {:mvn/version "0.1.13"}}}
+{:deps {io.factorhouse/rfx {:mvn/version "0.1.16"}}}
 ```
 
 Consumers of RFX interact with the API through the `io.factorhouse.rfx.core` namespace.
@@ -195,20 +195,23 @@ This means you can use RFX from any React wrapper (like HSX or Uix) or even plai
 
 **Note:** All the caveats of [React hooks](https://react.dev/reference/rules/rules-of-hooks) also apply to RFX subscriptions!
 
-Reagent users will need to wrap components in the `:f>` function component shorthand:
-
-```clojure
-(defn rfx-interop []
-  (let [val @(re-frame.core/subscribe [:some-value])]
-    [:div "The result is " val]))
-
-(defn my-reagent-comp [] 
-  [:f> rfx-interop])
-```
-
 ### `^:flush-dom` annotations
 
 `^:flush-dom` metadata is not supported like in re-frame.
+
+### reg-fx
+
+- When using `re-frame-bridge` the `reg-fx` fn call is identical to re-frame (single-arity)
+- Using `io.factorhouse.rfx.core/reg-fx` takes two arguments: `[rfx-instance value]`:
+
+```clojure
+(require '[io.factorhouse.rfx.core :as rfx])
+
+(rfx/reg-fx ::some-fx
+  (fn [rfx value]
+    (let [curr-db (rfx/snapshot rfx)]
+      (-> curr-db :some-f value))))
+```
 
 ## Learning the re-frame architecture
 

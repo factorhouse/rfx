@@ -1,6 +1,17 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## [0.1.16] - 2025-05-30
+
+### Changed
+- rfx: Add `clear-subscription-cache!` method to `Store` protocol
+
+### Breaking
+- rfx: `reg-fx` now two-arity
+
+### Fixes
+- rfx+re-frame-bridge: fix `clear-subscription-cache!` impl
+
 ## [0.1.15] - 2025-05-17
 ### Fixes
 - rfx: [clear-subscription-cache! arity for specific RFX instance](https://github.com/factorhouse/rfx/commit/3880578adaf6df31cf386eca191336ec963dea50)
