@@ -84,6 +84,8 @@
   store/IStore
   (clear-subscription-cache! [_]
     (reset! subscription-cache {})
+    (doseq [{:keys [listener]} (vals @listeners)]
+      (listener))
     true)
 
   (subscribe [this sub]
