@@ -1,6 +1,12 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+
+## [0.1.17] - 2025-06-02
+
+### Fixed
+- rfx: `clear-subscription-cache!` for atom store notifies listeners after clearing
+
 ## [0.1.16] - 2025-05-30
 
 ### Changed
