@@ -1,7 +1,6 @@
 (ns rfx-todomvc.ui
   (:require [io.factorhouse.hsx.core :as hsx]
             [io.factorhouse.rfx.core :as rfx]
-            [io.factorhouse.rfx.dev :refer [wrap-dev]]
             ["react" :as react]
             ["react-dom/client" :refer [createRoot]]))
 
@@ -9,7 +8,7 @@
   (createRoot (.getElementById js/document "app")))
 
 (defonce todo-context
-  (wrap-dev (rfx/init {:initial-value {:todos {}}})))
+  (rfx/init {:initial-value {:todos {}}}))
 
 (rfx/reg-event-db
  :todos/add
