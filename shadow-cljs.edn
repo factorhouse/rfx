@@ -1,15 +1,31 @@
 {:lein     {:profile "+dev"}
-
  :dev-http {8000 "public"}
-
  :builds
  {:test
   {:target     :esm
    :output-dir "target/test"
    :modules    {:rfx-test {:exports {:Button rfx.components/Button}}}}
 
-  :app
+  :datascript
   {:target     :browser
    :output-dir "public/js"
    :asset-path "/js"
-   :modules    {:main {:entries [rfx-todomvc.ui]}}}}}
+   :modules    {:main {:entries [datascript.ui]}}}
+
+  :re-frame-bridge-todomvc
+  {:target     :browser
+   :output-dir "public/js"
+   :asset-path "/js"
+   :modules    {:main {:entries [re-frame-bridge-todomvc.ui]}}}
+
+  :rfx-todomvc
+  {:target     :browser
+   :output-dir "public/js"
+   :asset-path "/js"
+   :modules    {:main {:entries [rfx-todomvc.ui]}}}
+
+  :uix
+  {:target     :browser
+   :output-dir "public/js"
+   :asset-path "/js"
+   :modules    {:main {:entries [uix.rfx]}}}}}
