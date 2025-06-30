@@ -220,16 +220,16 @@ To run any of the [example](/examples) demos:
 ```bash
 git clone git@github.com:factorhouse/rfx.git
 npm install
-npx shadow-cljs watch :rfx-todomvc
+npx shadow-cljs watch rfx-todomvc
 open http://localhost:8000/
 ```
 
-Replace `:rfx-todomvc` with any of the available example builds:
+Replace `rfx-todomvc` with any of the available example builds:
 
-- `:rfx-todomvc` - RFX TodoMVC example
-- `:re-frame-bridge-todomvc` - RFX with `re-frame.core` shim TodoMVC example
-- `:uix` - Uix + RFX example
-- `:datascript` - DataScript integration example (example of a pluggable store)
+- `rfx-todomvc` - RFX TodoMVC example
+- `re-frame-bridge-todomvc` - RFX with `re-frame.core` shim TodoMVC example
+- `uix` - Uix + RFX example
+- `datascript` - DataScript integration example (example of a pluggable store)
 
 The development server will be available at `http://localhost:8000/` and will automatically reload when you make changes to the source code.
 
