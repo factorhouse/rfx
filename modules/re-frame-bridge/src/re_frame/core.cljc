@@ -53,3 +53,18 @@
 
 (defn clear-subscription-cache! []
   (rfx/clear-subscription-cache! rfx/global-context))
+
+#?(:cljs
+   (rfx/reg-fx
+    :fx
+    (fn [context seq-of-effects]
+      (if-not (sequential? seq-of-effects)
+        (throw (ex-info (str "\":fx\" effect expects a seq, but was given " (type seq-of-effects))
+                        {:input seq-of-effects}))
+        (doseq [[effect-key effect-value] (remove nil? seq-of-effects)]
+          (if (= :dispatch effect-key)
+            (rfx/dispatch context effect-value)
+            (if-let [effect-fn (get-in @(:registry context) [:fx effect-key] false)]
+              (effect-fn context effect-value)
+              (throw (ex-info (str effect-key "in \":fx\" has no associated handler.")
+                              {:input seq-of-effects})))))))))
