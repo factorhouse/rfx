@@ -17,9 +17,24 @@
   ([sub-id]
    (rfx/reg-sub sub-id))
   ([sub-id & args]
-   ;; TODO: add better validation
-   (let [signals (take-nth 2 (butlast (rest args)))
-         sub-f   (last args)]
+   (let [[op f] (take-last 2 args)
+
+         [input-args sub-f]
+         (if (or
+              ;; (reg-sub ::foo (fn [_ _]))
+              (nil? f)
+              ;; (reg-sub ::foo :<- [::bar] (fn [_ _]))) ;; input signal
+              (vector? op))
+           [(butlast args) (last args)]
+           ;; (reg-sub ::foo ,,, :-> :foo)
+           [(drop-last 2 args)
+            (case op
+              :-> (fn arrow-sub [signals _] (f signals))
+              :=> (fn apply-sub [signals [_ & opts]] (apply f signals opts))
+              (throw (ex-info (str "Expected `:->` or `:=>` as second-to-last argument, got: " op)
+                              {:sub sub-id :input-args args})))])
+
+         signals (take-nth 2 input-args)]
      (rfx/reg-sub sub-id signals sub-f))))
 
 (def reg-event-db rfx/reg-event-db)
