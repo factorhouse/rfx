@@ -24,7 +24,7 @@ If you want to read more about the engineering challenge of moving a 120k LOC Re
 
 ```clojure
 ;; deps.edn
-{:deps {io.factorhouse/re-frame-bridge {:mvn/version "0.1.17"}}}
+{:deps {io.factorhouse/re-frame-bridge {:mvn/version "0.1.18"}}}
 ```
 
 The `io.factorhouse/re-frame-bridge` library is a drop-in replacement for [re-frame](https://github.com/day-8/re-frame) allowing RFX use via a `re-frame.core` shim namespace.
@@ -39,7 +39,7 @@ Check out the [re-frame-bridge-todo-mvc](examples/re-frame-bridge-todomvc) examp
 
 ```clojure
 ;; deps.edn
-{:deps {io.factorhouse/rfx {:mvn/version "0.1.17"}}}
+{:deps {io.factorhouse/rfx {:mvn/version "0.1.18"}}}
 ```
 
 Consumers of RFX interact with the API through the `io.factorhouse.rfx.core` namespace.
