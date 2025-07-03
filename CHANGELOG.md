@@ -2,6 +2,15 @@
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
 
+## [0.1.18] - 2025-07-02
+
+### Added
+- rfx+re-frame-bridge: Add `:fx` reg-fx to. Thanks to @valerauko!
+
+### Fixed
+- re-frame-bridge: Support `:->` sugar in `reg-sub`. Thanks to @valerauko!
+
+
 ## [0.1.17] - 2025-06-02
 
 ### Fixed
