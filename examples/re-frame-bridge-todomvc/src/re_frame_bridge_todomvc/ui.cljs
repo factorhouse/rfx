@@ -73,9 +73,21 @@
                    :on-click  #(rf/dispatch [:todos/remove (:id item)])}
           "Remove"]])]]))
 
+(rf/reg-event-fx
+  :foo
+  (fn [_ _]
+    {:fx [[:alert :foo]
+          [:alert :bar]
+          [:dispatch [:todos/add "yes"]]]}))
+
+(rf/reg-fx
+  :alert
+  (fn [x]
+    (js/alert (name x))))
+
 (defn hello-world []
   [:div {:className "p-4"}
-   [:h1 {:className "text-7xl"}
+   [:h1 {:className "text-7xl" :on-click #(rf/dispatch [:foo])}
     "todos!"]
    [todos-input]
    [todos-list]])
