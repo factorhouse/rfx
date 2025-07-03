@@ -38,6 +38,8 @@
  (fn [_ _]
    :foo))
 
+(rf/reg-sub :hello :-> :todos)
+
 (rf/reg-sub
  :todos/xyz
  (fn [db _]

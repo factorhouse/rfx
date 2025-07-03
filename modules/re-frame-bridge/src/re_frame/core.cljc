@@ -13,28 +13,30 @@
 (defonce app-db
   (:store rfx/global-context))
 
-(defn reg-sub
-  ([sub-id]
-   (rfx/reg-sub sub-id))
-  ([sub-id & args]
-   (let [[op f] (take-last 2 args)
-
-         [input-args sub-f]
-         (if (or
+(defn reg-sub-sugar
+  [sub-id args]
+  (let [[op f] (take-last 2 args)
+        [input-args sub-f]
+        (if (or
               ;; (reg-sub ::foo (fn [_ _]))
               (nil? f)
               ;; (reg-sub ::foo :<- [::bar] (fn [_ _]))) ;; input signal
               (vector? op))
-           [(butlast args) (last args)]
-           ;; (reg-sub ::foo ,,, :-> :foo)
-           [(drop-last 2 args)
-            (case op
-              :-> (fn arrow-sub [signals _] (f signals))
-              :=> (fn apply-sub [signals [_ & opts]] (apply f signals opts))
-              (throw (ex-info (str "Expected `:->` or `:=>` as second-to-last argument, got: " op)
-                              {:sub sub-id :input-args args})))])
+          [(butlast (rest args)) (last args)]
+          ;; (reg-sub ::foo ,,, :-> :foo)
+          [(drop-last 2 args)
+           (case op
+             :-> (fn arrow-sub [signals _] (f signals))
+             :=> (fn apply-sub [signals [_ & opts]] (apply f signals opts))
+             (throw (ex-info (str "Expected `:->` or `:=>` as second-to-last argument, got: " op)
+                             {:sub sub-id :input-args args})))])]
+    [(take-nth 2 input-args) sub-f]))
 
-         signals (take-nth 2 input-args)]
+(defn reg-sub
+  ([sub-id]
+   (rfx/reg-sub sub-id))
+  ([sub-id & args]
+   (let [[signals sub-f] (reg-sub-sugar sub-id args)]
      (rfx/reg-sub sub-id signals sub-f))))
 
 (def reg-event-db rfx/reg-event-db)
