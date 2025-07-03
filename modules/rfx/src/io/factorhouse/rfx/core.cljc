@@ -140,19 +140,19 @@
   (registry/reg-fx global-registry fx-id f))
 
 (reg-fx
-  :fx
-  (fn [{:keys [dispatch registry] :as context} seq-of-effects]
-    (let [curr-registry @registry]
-      (if-not (sequential? seq-of-effects)
-        (throw (ex-info (str "\":fx\" effect expects a seq, but was given " (type seq-of-effects))
-                        {:input seq-of-effects}))
-        (doseq [[effect-key effect-value] (remove nil? seq-of-effects)]
-          (if (= :dispatch effect-key)
-            (dispatch effect-value)
-            (if-let [effect-fn (get-in curr-registry [:fx effect-key])]
-              (effect-fn context effect-value)
-              (throw (ex-info (str effect-key "in \":fx\" has no associated handler.")
-                              {:input seq-of-effects})))))))))
+ :fx
+ (fn [{:keys [dispatch registry] :as context} seq-of-effects]
+   (let [curr-registry @registry]
+     (if-not (sequential? seq-of-effects)
+       (throw (ex-info (str "\":fx\" effect expects a seq, but was given " (type seq-of-effects))
+                       {:input seq-of-effects}))
+       (doseq [[effect-key effect-value] (remove nil? seq-of-effects)]
+         (if (= :dispatch effect-key)
+           (dispatch effect-value)
+           (if-let [effect-fn (get-in curr-registry [:fx effect-key])]
+             (effect-fn context effect-value)
+             (throw (ex-info (str effect-key "in \":fx\" has no associated handler.")
+                             {:input seq-of-effects})))))))))
 
 (defn reg-event-fx
   ([event-fx-id f]

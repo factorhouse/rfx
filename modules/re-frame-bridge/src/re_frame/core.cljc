@@ -19,9 +19,9 @@
         [input-args sub-f]
         (if (or
               ;; (reg-sub ::foo (fn [_ _]))
-              (nil? f)
+             (nil? f)
               ;; (reg-sub ::foo :<- [::bar] (fn [_ _]))) ;; input signal
-              (vector? op))
+             (vector? op))
           [(butlast (rest args)) (last args)]
           ;; (reg-sub ::foo ,,, :-> :foo)
           [(drop-last 2 args)
