@@ -74,16 +74,16 @@
           "Remove"]])]]))
 
 (rf/reg-event-fx
-  :foo
-  (fn [_ _]
-    {:fx [[:alert :foo]
-          [:alert :bar]
-          [:dispatch [:todos/add "yes"]]]}))
+ :foo
+ (fn [_ _]
+   {:fx [[:alert :foo]
+         [:alert :bar]
+         [:dispatch [:todos/add "yes"]]]}))
 
 (rf/reg-fx
-  :alert
-  (fn [x]
-    (js/alert (name x))))
+ :alert
+ (fn [x]
+   (js/alert (name x))))
 
 (defn hello-world []
   [:div {:className "p-4"}

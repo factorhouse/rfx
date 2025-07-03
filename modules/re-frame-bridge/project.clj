@@ -1,4 +1,4 @@
-(defproject io.factorhouse/re-frame-bridge "0.1.17"
+(defproject io.factorhouse/re-frame-bridge "0.1.18"
   :description "An implementation of re-frame built for modern React (compatibility api)"
   :url "http://github.com/factorhouse/rfx"
   :license {:name         "Apache-2.0 License"
