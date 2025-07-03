@@ -199,6 +199,16 @@ This means you can use RFX from any React wrapper (like HSX or Uix) or even plai
 
 `^:flush-dom` metadata is not supported like in re-frame.
 
+### reg-sub
+
+- `:<-` and `:->` sugar supported. Signals function not supported, only subscription vector style.
+  
+```clojure
+(rf/reg-sub :a-sub :-> name) ;; supported
+(rf/reg-sub :b-sub :<- [:a-sub] (fn [a-sub _] (keyword a-sub))) ;; supported
+(rf/reg-sub :c-sub (fn [_] (subscribe [:b-sub])) (constantly :not-supported)) ;; not supported
+```
+
 ### reg-fx
 
 - When using `re-frame-bridge` the `reg-fx` fn call is identical to re-frame (single-arity)
