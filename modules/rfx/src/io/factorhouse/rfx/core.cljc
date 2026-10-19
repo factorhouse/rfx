@@ -12,7 +12,7 @@
 
 (defn log-and-continue-error-handler
   [ctx]
-  #?(:cljs (js/console.error "rfx:" (pr-str ctx))
+  #?(:cljs (js/console.error "rfx:" (clj->js ctx :keyword-fn (comp str symbol)))
      :clj  (let [log (requiring-resolve 'clojure.tools.logging/error)]
              (log "rfx: %s" ctx))))
 

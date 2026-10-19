@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
 
+## [Unreleased]
+
+### Fixed
+- rfx: `log-and-continue-error-handler` now logs errors as JS objects (via `clj->js`) in the browser console, making them readable.
+
+
 ## [0.1.18] - 2025-07-02
 
 ### Added
